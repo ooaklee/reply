@@ -15,7 +15,7 @@ There are several ways you can integrate `reply` into your application. Below, y
 ### How to create a `replier`
 
 ```go
-// Create a error manifest, to hold correlating error as string and it's manifest
+// (Optional) Create a error manifest, to hold correlating error as string and it's manifest
 // item
 baseManifest := []reply.ErrorManifest{
                 {"example-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
@@ -45,7 +45,7 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
     // Pass error to replier's method to return predefined response, else
     // 500
-    replier.NewHTTPResponse(&reply.NewResponseRequest{
+    _ := replier.NewHTTPResponse(&reply.NewResponseRequest{
         Writer: w,
         Error:  exampleErr,
     })
@@ -89,7 +89,7 @@ func ExampleGetAllHandler(w http.ResponseWriter, r *http.Request) {
 
     // build and sent default formatted JSON response for consumption
     // by client 
-    replier.NewHTTPResponse(&reply.NewResponseRequest{
+    _ := replier.NewHTTPResponse(&reply.NewResponseRequest{
         Writer: w,
         Data: mockedUsers
         StatusCode: htttp.StatusOK

@@ -86,6 +86,9 @@ func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 // deemed as an error response.
 func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 
+	// Use fresh transfer object
+	r.transferObject = r.transferObject.RefreshTransferObject()
+
 	r.transferObject.SetWriter(response.Writer)
 	r.setHeaders(response.Headers)
 	r.transferObject.SetMeta(response.Meta)
@@ -107,7 +110,6 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 		r.transferObject.SetStatus(transferObjectStatus)
 
 		sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
-		r.transferObject = r.transferObject.RefreshTransferObject()
 		return nil
 	}
 
@@ -121,7 +123,6 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 		}
 
 		sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
-		r.transferObject = r.transferObject.RefreshTransferObject()
 		return nil
 	}
 
@@ -134,7 +135,6 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 		}
 
 		sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
-		r.transferObject = r.transferObject.RefreshTransferObject()
 		return nil
 	}
 
@@ -143,7 +143,6 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 	r.transferObject.SetData(defaultResponseBody)
 
 	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
-	r.transferObject = r.transferObject.RefreshTransferObject()
 	return nil
 }
 

@@ -61,12 +61,34 @@ func simpleUsersAPINoManifestEntryHandler(w http.ResponseWriter, r *http.Request
 	})
 }
 
+func simpleTokensAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	mockedAccessToken := "05e42c11-8bdd-423d-a2c1-c3c5c6604a30"
+	mockedRefreshToken := "0e95c426-d373-41a5-bfe1-08db322527bd"
+
+	replier.NewHTTPResponse(&reply.NewResponseRequest{
+		Writer:       w,
+		AccessToken:  mockedAccessToken,
+		RefreshToken: mockedRefreshToken,
+	})
+}
+
+func simpleAPIDefaultResponseHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something that only needs an empty response body, and 200 status code
+	replier.NewHTTPResponse(&reply.NewResponseRequest{
+		Writer: w,
+	})
+}
+
 func handleRequest() {
 	var port string = ":8081"
 
 	http.HandleFunc("/users", simpleUsersAPIHandler)
 	http.HandleFunc("/users/3", simpleUsersAPINotFoundHandler)
 	http.HandleFunc("/users/4", simpleUsersAPINoManifestEntryHandler)
+	http.HandleFunc("/tokens/refresh", simpleTokensAPIHandler)
+	http.HandleFunc("/defaults/1", simpleAPIDefaultResponseHandler)
 
 	log.Printf("Serving simple API on port %s...", port)
 	log.Fatal(http.ListenAndServe(port, nil))

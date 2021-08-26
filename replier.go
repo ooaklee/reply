@@ -116,6 +116,10 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 		r.transferObject.SetAccessToken(response.AccessToken)
 		r.transferObject.SetRefreshToken(response.RefreshToken)
 
+		if response.StatusCode == 0 {
+			r.transferObject.SetStatusCode(defaultStatusCode)
+		}
+
 		sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 		r.transferObject = r.transferObject.RefreshTransferObject()
 		return nil

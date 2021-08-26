@@ -49,9 +49,15 @@ func simpleUsersAPINoManifestEntryHandler(w http.ResponseWriter, r *http.Request
 	// should return 500
 	unregisterdErr := errors.New("unexpected-error")
 
+	// mock passing additional headers in request
+	mockAdditionalHeaders := map[string]string{
+		"correlation-id": "d7c09ac2-fa46-4ece-bcde-1d7ad81d2230",
+	}
+
 	replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer: w,
-		Error:  unregisterdErr,
+		Writer:  w,
+		Error:   unregisterdErr,
+		Headers: mockAdditionalHeaders,
 	})
 }
 

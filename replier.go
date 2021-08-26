@@ -86,9 +86,9 @@ func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 // deemed as an error response.
 func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 
-	r.transferObject.SetHeaders(response.Headers)
-	r.transferObject.SetMeta(response.Meta)
 	r.transferObject.SetWriter(response.Writer)
+	r.setHeaders(response.Headers)
+	r.transferObject.SetMeta(response.Meta)
 	r.transferObject.SetStatusCode(response.StatusCode)
 
 	// Manage response for error
@@ -145,6 +145,29 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 	r.transferObject = r.transferObject.RefreshTransferObject()
 	return nil
+}
+
+// setDefaultContentType handles setting default content type to JSON if
+// not already set
+func (r *Replier) setDefaultContentType() {
+	if r.transferObject.GetWriter().Header().Get("Content-type") == "" {
+		r.transferObject.GetWriter().Header().Set("Content-type", "application/json")
+	}
+}
+
+// setHeaders handles setting headers on writer. Existing headers hould not
+// be affeted unless they share the header key
+func (r *Replier) setHeaders(h map[string]string) {
+
+	r.setDefaultContentType()
+
+	if h == nil {
+		return
+	}
+
+	for headerKey, headerValue := range h {
+		r.transferObject.GetWriter().Header().Set(headerKey, headerValue)
+	}
 }
 
 // sendHTTPResponse handles sending response based on the transfer object

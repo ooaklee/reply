@@ -1,5 +1,12 @@
 # Reply Release Notes
 
+## [v0.1.0](https://github.com/ooaklee/reply/releases/tag/v0.1.0)
+2021-08-28
+
+* Refactored code
+* Utilise error returned in `NewHTTPResponse`
+* Added log entry for unfound manifest error item.
+
 ## [v0.1.0-alpha.1](https://github.com/ooaklee/reply/releases/tag/v0.1.0-alpha.1)
 2021-08-27
 

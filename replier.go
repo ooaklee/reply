@@ -2,6 +2,7 @@ package reply
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 )
@@ -76,74 +77,110 @@ func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 	return &replier
 }
 
-// NewHTTPResponse handles generating and sending of an appropiate HTTP response body
+// NewHTTPResponse handles generating and sending of an appropriate HTTP response body
 // based response attributes.
 //
-// NOTE - A number of a assumptions have been made to simplify the process
+// NOTE - Several assumptions have been made to simplify the process
 // of response generation. The assumptions include:
 //
-// - Responses with a StatusCode `NOT` between 200 - 299, and 300-301 will be
-// deemed as an error response.
+// - An error passed in the NewResponseRequest will have a corresponding manifest entry,
+// otherwise you are happy for a `500 - Internal Server Error` to be returned
+//
+// - Reply should only return tokens (access & refresh) with each other or by themselves
+//
+// - Data will be JSON encodable
+//
+// - The default response will be to return 200 status code if the NewResponseRequest is
+// solely  passed  with a writer
 func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
+
+	if response.Writer == nil {
+		return errors.New("reply/http-response: failed to send response, no writer provided")
+	}
 
 	// Use fresh transfer object
 	r.transferObject = r.transferObject.RefreshTransferObject()
 
-	r.transferObject.SetWriter(response.Writer)
-	r.setHeaders(response.Headers)
-	r.transferObject.SetMeta(response.Meta)
-	r.transferObject.SetStatusCode(response.StatusCode)
+	r.setUniversalAttributes(response.Writer, response.Headers, response.Meta, response.StatusCode)
 
 	// Manage response for error
 	if response.Error != nil {
-
-		manifestItem, ok := r.errorManifest[response.Error.Error()]
-		if !ok {
-			manifestItem = getInternalServertErrorManifestItem()
-		}
-
-		transferObjectStatus := &TransferObjectStatus{}
-		transferObjectStatus.SetMessage(manifestItem.Message)
-
-		// Overwrite status code
-		r.transferObject.SetStatusCode(manifestItem.StatusCode)
-		r.transferObject.SetStatus(transferObjectStatus)
-
-		sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+		r.generateErrorResponse(response.Error)
 		return nil
 	}
 
 	// Manage response for token
 	if response.AccessToken != "" || response.RefreshToken != "" {
-		r.transferObject.SetAccessToken(response.AccessToken)
-		r.transferObject.SetRefreshToken(response.RefreshToken)
-
-		if response.StatusCode == 0 {
-			r.transferObject.SetStatusCode(defaultStatusCode)
-		}
-
-		sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+		r.generateTokenResponse(response.AccessToken, response.RefreshToken, response.StatusCode)
 		return nil
 	}
 
 	// Manage response for data
 	if response.Data != nil {
-		r.transferObject.SetData(response.Data)
-
-		if response.StatusCode == 0 {
-			r.transferObject.SetStatusCode(defaultStatusCode)
-		}
-
-		sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+		r.generateDataResponse(response.Data, response.StatusCode)
 		return nil
 	}
 
-	// Set Default response
+	r.generateDefaultResponse()
+	return nil
+}
+
+// generateDefaultResponse generates the default response
+func (r *Replier) generateDefaultResponse() {
 	r.transferObject.SetStatusCode(defaultStatusCode)
 	r.transferObject.SetData(defaultResponseBody)
 
 	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
-	return nil
+}
+
+// generateDataResponse generates response based on passed data
+func (r *Replier) generateDataResponse(data interface{}, statusCode int) {
+	r.transferObject.SetData(data)
+
+	if statusCode == 0 {
+		r.transferObject.SetStatusCode(defaultStatusCode)
+	}
+
+	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+}
+
+// generateTokenResponse generates token response on passed tokens information
+func (r *Replier) generateTokenResponse(accessToken, refreshToken string, statusCode int) {
+	r.transferObject.SetAccessToken(accessToken)
+	r.transferObject.SetRefreshToken(refreshToken)
+
+	if statusCode == 0 {
+		r.transferObject.SetStatusCode(defaultStatusCode)
+	}
+
+	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+}
+
+// generateErrorResponse generates correct error response based on passed
+// error
+func (r *Replier) generateErrorResponse(err error) {
+	manifestItem, ok := r.errorManifest[err.Error()]
+	if !ok {
+		manifestItem = getInternalServertErrorManifestItem()
+	}
+
+	transferObjectStatus := &TransferObjectStatus{}
+	transferObjectStatus.SetMessage(manifestItem.Message)
+
+	// Overwrite status code
+	r.transferObject.SetStatusCode(manifestItem.StatusCode)
+	r.transferObject.SetStatus(transferObjectStatus)
+
+	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+}
+
+// setUniversalAttributes sets the attributes that are common across all
+// response types
+func (r *Replier) setUniversalAttributes(writer http.ResponseWriter, headers map[string]string, meta map[string]interface{}, statusCode int) {
+	r.transferObject.SetWriter(writer)
+	r.setHeaders(headers)
+	r.transferObject.SetMeta(meta)
+	r.transferObject.SetStatusCode(statusCode)
 }
 
 // setDefaultContentType handles setting default content type to JSON if

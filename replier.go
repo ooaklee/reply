@@ -3,6 +3,7 @@ package reply
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -105,47 +106,43 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 
 	// Manage response for error
 	if response.Error != nil {
-		r.generateErrorResponse(response.Error)
-		return nil
+		return r.generateErrorResponse(response.Error)
 	}
 
 	// Manage response for token
 	if response.AccessToken != "" || response.RefreshToken != "" {
-		r.generateTokenResponse(response.AccessToken, response.RefreshToken, response.StatusCode)
-		return nil
+		return r.generateTokenResponse(response.AccessToken, response.RefreshToken, response.StatusCode)
 	}
 
 	// Manage response for data
 	if response.Data != nil {
-		r.generateDataResponse(response.Data, response.StatusCode)
-		return nil
+		return r.generateDataResponse(response.Data, response.StatusCode)
 	}
 
-	r.generateDefaultResponse()
-	return nil
+	return r.generateDefaultResponse()
 }
 
 // generateDefaultResponse generates the default response
-func (r *Replier) generateDefaultResponse() {
+func (r *Replier) generateDefaultResponse() error {
 	r.transferObject.SetStatusCode(defaultStatusCode)
 	r.transferObject.SetData(defaultResponseBody)
 
-	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
 // generateDataResponse generates response based on passed data
-func (r *Replier) generateDataResponse(data interface{}, statusCode int) {
+func (r *Replier) generateDataResponse(data interface{}, statusCode int) error {
 	r.transferObject.SetData(data)
 
 	if statusCode == 0 {
 		r.transferObject.SetStatusCode(defaultStatusCode)
 	}
 
-	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
 // generateTokenResponse generates token response on passed tokens information
-func (r *Replier) generateTokenResponse(accessToken, refreshToken string, statusCode int) {
+func (r *Replier) generateTokenResponse(accessToken, refreshToken string, statusCode int) error {
 	r.transferObject.SetAccessToken(accessToken)
 	r.transferObject.SetRefreshToken(refreshToken)
 
@@ -153,15 +150,16 @@ func (r *Replier) generateTokenResponse(accessToken, refreshToken string, status
 		r.transferObject.SetStatusCode(defaultStatusCode)
 	}
 
-	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
 // generateErrorResponse generates correct error response based on passed
 // error
-func (r *Replier) generateErrorResponse(err error) {
+func (r *Replier) generateErrorResponse(err error) error {
 	manifestItem, ok := r.errorManifest[err.Error()]
 	if !ok {
 		manifestItem = getInternalServertErrorManifestItem()
+		log.Printf("reply/error-response: failed to find error manifest item for %v", err)
 	}
 
 	transferObjectStatus := &TransferObjectStatus{}
@@ -171,7 +169,7 @@ func (r *Replier) generateErrorResponse(err error) {
 	r.transferObject.SetStatusCode(manifestItem.StatusCode)
 	r.transferObject.SetStatus(transferObjectStatus)
 
-	sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
 // setUniversalAttributes sets the attributes that are common across all
@@ -207,18 +205,15 @@ func (r *Replier) setHeaders(h map[string]string) {
 }
 
 // sendHTTPResponse handles sending response based on the transfer object
-func sendHTTPResponse(writer http.ResponseWriter, transferObject TransferObject) {
+func sendHTTPResponse(writer http.ResponseWriter, transferObject TransferObject) error {
 
 	writer.WriteHeader(transferObject.GetStatusCode())
 	err := json.NewEncoder(writer).Encode(transferObject)
-	if err == nil {
-		return
+	if err != nil {
+		return fmt.Errorf("reply/http-response: failed to encode transfer object with %v", err)
 	}
 
-	log.Printf("reply/http-response: failed to encode transfer object with %v", err)
-
-	writer.WriteHeader(http.StatusInternalServerError)
-	writer.Write([]byte{})
+	return nil
 }
 
 // mergeManifestCollections handles merges the passed manifests into a singular

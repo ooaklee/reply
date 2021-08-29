@@ -109,3 +109,10 @@ When the endpoint linked to the handler above is called, you should see the foll
     ]
 }
 ```
+
+## Copyright
+
+Copyright (C) 2021 by Leon Silcott <leon@boasi.io>.
+
+reply library released under MIT License.
+See [LICENSE](https://github.com/ooaklee/reply/blob/master/LICENSE) for details.

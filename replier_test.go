@@ -1,3 +1,7 @@
+// Copyright (C) 2021 by Leon Silcott <leon@boasi.io>. All rights reserved.
+// Use of this source code is governed under MIT License.
+// See the [LICENSE](https://github.com/ooaklee/reply/blob/master/LICENSE) for details.
+
 package reply_test
 
 import (

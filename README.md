@@ -29,7 +29,7 @@ replier := reply.NewReplier(baseManifest)
 
 You can use `reply` for both successful and error based responses.
 
-> `NOTE` - When sending an error response, it is essential to make sure you populate the `replier`'s error manifest with the correct errors. Otherwise, a `500 - Internal Server Error` response will be sent back to the client by default if it cannot match the passed error with on in the manifest.
+> `NOTE` - When sending an error response, it is essential to make sure you populate the `replier`'s error manifest with the correct errors. Otherwise, a `500 - Internal Server Error` response will be sent back to the client by default if it cannot match the passed error in the manifest.
 
 #### Making use of error manifest
 

@@ -6,17 +6,17 @@ package reply
 
 import "net/http"
 
-// ErrorManifestItem holds the message and status code for a error response
+// ErrorManifestItem holds the message and status code for an error response
 type ErrorManifestItem struct {
 
-	// Message holds the text returned in the response's status.message path
+	// Message holds the text returned in the response's `status.message` path
 	//
 	// NOTE:
 	//
 	// - The most effective messages are short, sweet and easy to consume
 	//
-	// - This message will be seeing by the consuming client, be mindful of
-	// how much information you divulge
+	// - This message will be seen by the consuming client, be mindful of
+	// the amount of information you divulge
 	Message string
 
 	// StatusCode holds the HTTP status code that best relates to the response.

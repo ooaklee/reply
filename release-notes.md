@@ -1,5 +1,11 @@
 # Reply Release Notes
 
+## [v0.1.1](https://github.com/ooaklee/reply/releases/tag/v0.1.1)
+2021-08-31
+
+* Added licensing information
+* Fixed typos
+
 ## [v0.1.0](https://github.com/ooaklee/reply/releases/tag/v0.1.0)
 2021-08-28
 

@@ -35,7 +35,7 @@ const (
 	defaultStatusCode = http.StatusOK
 )
 
-// Option used to build ontop of default features
+// Option used to build on top of default features
 type Option func(*Replier)
 
 // WithTransferObject overwrites the transfer object used for response
@@ -193,8 +193,8 @@ func (r *Replier) setDefaultContentType() {
 	}
 }
 
-// setHeaders handles setting headers on writer. Existing headers hould not
-// be affeted unless they share the header key
+// setHeaders handles setting headers on the writer. Existing headers should not
+// be affected unless they share the header key
 func (r *Replier) setHeaders(h map[string]string) {
 
 	r.setDefaultContentType()

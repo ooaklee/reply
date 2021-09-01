@@ -110,6 +110,145 @@ When the endpoint linked to the handler above is called, you should see the foll
 }
 ```
 
+## Response Types
+
+There are currently four core response types supported by `reply`. They are the `Error`, `Token`, `Data` (*Success*) and `Default` response types. Each type has its JSON representation which is defined through a `Transfer Object`.
+
+> NOTE: Unless otherwise stated, the `Transfer Object` assumed will be the [default transfer object (defaultReplyTransferObject)](./model.go)
+
+### Universal Attributes
+
+All core response types share universal attributes, which you can set in addition to their outputs. These include:
+- Headers
+- Meta
+- Status Code
+
+### Error Response Type
+
+The `Error` response notifies the consumer when an error/ unexpected behaviour has occurred on the API. The message and the status code forwarded to the consumer is sourced from the error manifest. In the event the error's string
+representation isn't in the manifest; `reply` will return the consumer a "500 - Internal Server Error" response.
+
+#### JSON Representation
+
+`Error` responses are returned with the format.
+
+```JSON
+{
+    "status": {
+        "message": "resource not found"
+    }
+}
+```
+
+##### With `Meta`
+
+When a `meta` is also declared, the response will have the following format. It can be as big or small as needed.
+
+```JSON
+{
+    "meta": {
+        "example": "meta in error reponse"
+    },
+    "status": {
+        "message": "resource not found"
+    }
+}
+```
+
+### Token Response Type
+
+The `token` response sends the consumer tokens; currently, the supported token types are `acccess_token` and `refresh_token`. If either is passed in the response request, `reply` will default to this response type.
+
+#### JSON Representation
+
+`Error` responses are returned with the format.
+
+```JSON
+{
+    "access_token": "08a0a043-b532-4cea-8117-364739f2d994",
+    "refresh_token": "08b29914-09a8-4a4a-8aa5-b1ffaff266e6"
+}
+```
+
+##### With `Meta`
+
+When a `meta` is also declared, the response will have the following format. It can be as big or small as needed.
+
+```JSON
+{
+    "meta": {
+        "example": "meta in token reponse"
+    },
+    "access_token": "08a0a043-b532-4cea-8117-364739f2d994",
+    "refresh_token": "08b29914-09a8-4a4a-8aa5-b1ffaff266e6"
+}
+```
+
+### Data Response Type
+
+The `data` response can be seen as a *successful* response. It parses the passed struct into its JSON representation and passes it to the consumer in the JSON response. The JSON response below will represent a response if the data passed was a user struct with the:
+- `id` 1
+- `name` john doe
+- `dob` 1/1/1970 
+
+#### JSON Representation
+
+`Data` responses are returned with the format.
+
+```JSON
+{
+    "data": {
+        "id": 1,
+        "name": "john doe",
+        "dob": "1/1/1970"
+    }
+}
+```
+
+##### With `Meta`
+
+When a `meta` is also declared, the response will have the following format. It can be as big or small as needed.
+
+```JSON
+{
+    "meta": {
+        "example": "meta in data reponse"
+    },
+     "data": {
+        "id": 1,
+        "name": "john doe",
+        "dob": "1/1/1970"
+    }
+}
+```
+
+### Default Response Type
+
+The `default` response returns `"{}"` with a status code of `200` if no `error`, `tokens`, `data` and `status code` is passed. If desired, another `status code` can be specified with `default` responses.
+
+#### JSON Representation
+
+`Default` responses are returned with the format.
+
+```JSON
+{
+    "data": "{}"
+}
+```
+
+##### With `Meta`
+
+When a `meta` is also declared, the response will have the following format. It can be as big or small as needed.
+
+```JSON
+{
+    "meta": {
+        "example": "meta in default reponse"
+    },
+     "data": "{}"
+}
+```
+
 ## Copyright
 
 Copyright (C) 2021 by Leon Silcott <leon@boasi.io>.

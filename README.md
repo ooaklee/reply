@@ -128,8 +128,6 @@ All core response types share universal attributes, which you can set in additio
 The `Error` response notifies the consumer when an error/ unexpected behaviour has occurred on the API. The message and the status code forwarded to the consumer is sourced from the error manifest. In the event the error's string
 representation isn't in the manifest; `reply` will return the consumer a "500 - Internal Server Error" response.
 
-<<<<<<< Updated upstream
-=======
 #### As code
 
 To create an `error` response use the following code snippet:
@@ -155,7 +153,6 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
->>>>>>> Stashed changes
 #### JSON Representation
 
 `Error` responses are returned with the format.
@@ -187,8 +184,6 @@ When a `meta` is also declared, the response will have the following format. It 
 
 The `token` response sends the consumer tokens; currently, the supported token types are `acccess_token` and `refresh_token`. If either is passed in the response request, `reply` will default to this response type.
 
-<<<<<<< Updated upstream
-=======
 #### As code
 
 To create a `token` response use the following code snippet:
@@ -209,7 +204,6 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
->>>>>>> Stashed changes
 #### JSON Representation
 
 `Error` responses are returned with the format.
@@ -240,9 +234,6 @@ When a `meta` is also declared, the response will have the following format. It 
 The `data` response can be seen as a *successful* response. It parses the passed struct into its JSON representation and passes it to the consumer in the JSON response. The JSON response below will represent a response if the data passed was a user struct with the:
 - `id` 1
 - `name` john doe
-<<<<<<< Updated upstream
-- `dob` 1/1/1970 
-=======
 - `dob` 1/1/1970
 
 #### As code
@@ -273,7 +264,6 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
     })
 }
 ```
->>>>>>> Stashed changes
 
 #### JSON Representation
 
@@ -310,8 +300,6 @@ When a `meta` is also declared, the response will have the following format. It 
 
 The `default` response returns `"{}"` with a status code of `200` if no `error`, `tokens`, `data` and `status code` is passed. If desired, another `status code` can be specified with `default` responses.
 
-<<<<<<< Updated upstream
-=======
 #### As code
 
 To create a `default` response use the following code snippet:
@@ -327,7 +315,6 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
->>>>>>> Stashed changes
 #### JSON Representation
 
 `Default` responses are returned with the format.

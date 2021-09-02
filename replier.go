@@ -249,3 +249,9 @@ func getManifestAttributes(manifest ErrorManifest) (key string, value *ErrorMani
 func getInternalServertErrorManifestItem() ErrorManifestItem {
 	return ErrorManifestItem{Message: "Internal Server Error", StatusCode: http.StatusInternalServerError}
 }
+
+/////////////////////////////////////////////////
+//////////////// Response Aides /////////////////
+// Response aides simplify how users interact
+// with this library to create their success and
+// error driven responses.

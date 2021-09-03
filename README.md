@@ -110,6 +110,52 @@ When the endpoint linked to the handler above is called, you should see the foll
 }
 ```
 
+### Transfer Objects
+
+A `Transfer object` defines the shape of the response. if desired, users can create their own `transfer object` with additional logic, but it must satisfy the following interface:
+
+```go
+// TransferObject outlines expected methods of a transfer object
+type TransferObject interface {
+	SetHeaders(headers map[string]string)
+	SetStatusCode(code int)
+	SetMeta(meta map[string]interface{})
+	SetAccessToken(token string)
+	SetRefreshToken(token string)
+	GetWriter() http.ResponseWriter
+	GetStatusCode() int
+	SetWriter(writer http.ResponseWriter)
+	SetStatus(transferObjectStatus *TransferObjectStatus)
+	RefreshTransferObject() TransferObject
+	SetData(data interface{})
+}
+```
+
+The interface uses relatively self-explanatory method names. Still, if you want to see an example of how one might create your own `transfer object`, you can find the `default transfer object` used by `reply` [here (defaultReplyTransferObject)](./model.go). 
+
+Once your `transfer object` has been created and is valid, you can overwrite the default `transfer object` in your newly created version by using the following code when declaring your `replier`:
+
+```go
+// some implementation of your desired transfer object
+var customTransferObject reply.TransferObject
+
+customTransferObject = &foo{}
+
+
+// create a replier, overwriting the default transfer object
+replier := reply.NewReplier([]reply.ErrorManifest{}, reply.WithTransferObject(customTransferObject))
+
+// use the new replier as you otherwise would
+```
+
+> *NOTE:* you can also pass in your custom transfer object with `&foo{}`, for example:
+>
+> `replier := reply.NewReplier([]reply.ErrorManifest{}, reply.WithTransferObject(&foo{}))`
+
+
+> For a live example on how you can use a custom `transfer object` please look at the [`simple api examples` in this repo](./examples/example_simple_api.go). You are looking out for the `fooReplyTransferObject` implementation.
+
+
 ## Response Types
 
 There are currently four core response types supported by `reply`. They are the `Error`, `Token`, `Data` (*Success*) and `Default` response types. Each type has its JSON representation which is defined through a `Transfer Object`.

@@ -115,12 +115,12 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 
 	// Manage response for token
 	if response.AccessToken != "" || response.RefreshToken != "" {
-		return r.generateTokenResponse(response.AccessToken, response.RefreshToken, response.StatusCode)
+		return r.generateTokenResponse(response.AccessToken, response.RefreshToken)
 	}
 
 	// Manage response for data
 	if response.Data != nil {
-		return r.generateDataResponse(response.Data, response.StatusCode)
+		return r.generateDataResponse(response.Data)
 	}
 
 	return r.generateDefaultResponse()
@@ -135,24 +135,16 @@ func (r *Replier) generateDefaultResponse() error {
 }
 
 // generateDataResponse generates response based on passed data
-func (r *Replier) generateDataResponse(data interface{}, statusCode int) error {
+func (r *Replier) generateDataResponse(data interface{}) error {
 	r.transferObject.SetData(data)
-
-	if statusCode == 0 {
-		r.transferObject.SetStatusCode(defaultStatusCode)
-	}
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
 // generateTokenResponse generates token response on passed tokens information
-func (r *Replier) generateTokenResponse(accessToken, refreshToken string, statusCode int) error {
+func (r *Replier) generateTokenResponse(accessToken, refreshToken string) error {
 	r.transferObject.SetAccessToken(accessToken)
 	r.transferObject.SetRefreshToken(refreshToken)
-
-	if statusCode == 0 {
-		r.transferObject.SetStatusCode(defaultStatusCode)
-	}
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
@@ -182,7 +174,13 @@ func (r *Replier) setUniversalAttributes(writer http.ResponseWriter, headers map
 	r.transferObject.SetWriter(writer)
 	r.setHeaders(headers)
 	r.transferObject.SetMeta(meta)
-	r.transferObject.SetStatusCode(statusCode)
+
+	if statusCode != 0 {
+		r.transferObject.SetStatusCode(statusCode)
+		return
+	}
+
+	r.transferObject.SetStatusCode(defaultStatusCode)
 }
 
 // setDefaultContentType handles setting default content type to JSON if

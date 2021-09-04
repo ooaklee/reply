@@ -255,3 +255,82 @@ func getInternalServertErrorManifestItem() ErrorManifestItem {
 // Response aides simplify how users interact
 // with this library to create their success and
 // error driven responses.
+
+type ResponseAttributes func(*NewResponseRequest)
+
+// WithHeaders adds on to the headers used for response
+func WithHeaders(headers map[string]string) ResponseAttributes {
+	return func(r *NewResponseRequest) {
+		r.Headers = headers
+	}
+}
+
+// WithMeta adds meta data to the response
+func WithMeta(meta map[string]interface{}) ResponseAttributes {
+	return func(r *NewResponseRequest) {
+		r.Meta = meta
+	}
+}
+
+func (r *Replier) NewHTTPErrorResponse(w http.ResponseWriter, err error, attributes ...ResponseAttributes) error {
+
+	request := NewResponseRequest{
+		Writer: w,
+		Error:  err,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
+}
+
+func (r *Replier) NewHTTPDataResponse(w http.ResponseWriter, statusCode int, data interface{}, attributes ...ResponseAttributes) error {
+
+	request := NewResponseRequest{
+		Writer:     w,
+		Data:       data,
+		StatusCode: statusCode,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
+}
+
+func (r *Replier) NewHTTPBlankResponse(w http.ResponseWriter, statusCode int, attributes ...ResponseAttributes) error {
+
+	request := NewResponseRequest{
+		Writer:     w,
+		StatusCode: statusCode,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
+}
+
+func (r *Replier) NewHTTPTokenResponse(w http.ResponseWriter, statusCode int, accessToken, refreshToken string, attributes ...ResponseAttributes) error {
+
+	request := NewResponseRequest{
+		Writer:       w,
+		StatusCode:   statusCode,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
+}

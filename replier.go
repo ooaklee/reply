@@ -218,8 +218,8 @@ func sendHTTPResponse(writer http.ResponseWriter, transferObject TransferObject)
 	return nil
 }
 
-// mergeManifestCollections handles merges the passed manifests into a singular
-// map
+// mergeManifestCollections handles merging the passed manifests into a singular
+// manifest
 func mergeManifestCollections(manifests []ErrorManifest) ErrorManifest {
 
 	mergedManifests := make(ErrorManifest)
@@ -237,7 +237,6 @@ func getManifestItems(manifest ErrorManifest, finalManifest ErrorManifest) {
 	for key, item := range manifest {
 		finalManifest[key] = item
 	}
-
 }
 
 // getInternalServertErrorManifestItem returns typical 500 error with text and message
@@ -251,22 +250,33 @@ func getInternalServertErrorManifestItem() ErrorManifestItem {
 // with this library to create their success and
 // error driven responses.
 
+// ResponseAttributes used to add additional attributes to
+// response aides
 type ResponseAttributes func(*NewResponseRequest)
 
-// WithHeaders adds on to the headers used for response
+// WithHeaders adds passed headers on to the generated response
 func WithHeaders(headers map[string]string) ResponseAttributes {
 	return func(r *NewResponseRequest) {
 		r.Headers = headers
 	}
 }
 
-// WithMeta adds meta data to the response
+// WithMeta adds passed meta data on to the generated response
 func WithMeta(meta map[string]interface{}) ResponseAttributes {
 	return func(r *NewResponseRequest) {
 		r.Meta = meta
 	}
 }
 
+// NewHTTPErrorResponse this response aide is used to create
+// response explicitly for errors. It will utilise the manifest
+// declared when creating its base replier.
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
+//
+// Note: If the passed error doesn't have a manifest entry, a 500 error will
+// be returned.
 func (r *Replier) NewHTTPErrorResponse(w http.ResponseWriter, err error, attributes ...ResponseAttributes) error {
 
 	request := NewResponseRequest{
@@ -282,6 +292,13 @@ func (r *Replier) NewHTTPErrorResponse(w http.ResponseWriter, err error, attribu
 	return r.NewHTTPResponse(&request)
 }
 
+// NewHTTPDataResponse this response aide is used to create
+// "successful" response. "Successful" response are responses
+// that contain some sort of data that will be returned to the
+// consumer.
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
 func (r *Replier) NewHTTPDataResponse(w http.ResponseWriter, statusCode int, data interface{}, attributes ...ResponseAttributes) error {
 
 	request := NewResponseRequest{
@@ -298,6 +315,12 @@ func (r *Replier) NewHTTPDataResponse(w http.ResponseWriter, statusCode int, dat
 	return r.NewHTTPResponse(&request)
 }
 
+// NewHTTPBlankResponse this response aide is used to create
+// a "blank" response. A blank response is one that contains
+// the response body "{}".
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
 func (r *Replier) NewHTTPBlankResponse(w http.ResponseWriter, statusCode int, attributes ...ResponseAttributes) error {
 
 	request := NewResponseRequest{
@@ -313,7 +336,21 @@ func (r *Replier) NewHTTPBlankResponse(w http.ResponseWriter, statusCode int, at
 	return r.NewHTTPResponse(&request)
 }
 
+// NewHTTPTokenResponse this response aide is used to create
+// the response for token(s). If the desired behaviour is to return
+// a single token, pass an empty string in the token not to be
+// included in the response.
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
+//
+// Note: At least one of the tokens must be specified or an error will
+// be returned
 func (r *Replier) NewHTTPTokenResponse(w http.ResponseWriter, statusCode int, accessToken, refreshToken string, attributes ...ResponseAttributes) error {
+
+	if isEmpty(accessToken) && isEmpty(refreshToken) {
+		return errors.New("reply/http-token-aide: failed at least one token must be returned")
+	}
 
 	request := NewResponseRequest{
 		Writer:       w,
@@ -328,4 +365,9 @@ func (r *Replier) NewHTTPTokenResponse(w http.ResponseWriter, statusCode int, ac
 	}
 
 	return r.NewHTTPResponse(&request)
+}
+
+// isEmpty checks if the passed string is empty
+func isEmpty(s string) bool {
+	return s == ""
 }

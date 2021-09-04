@@ -185,9 +185,13 @@ func TestReplier_NewHTTPResponseForError(t *testing.T) {
 	}{
 		{
 			name: "Success - Resource not found",
-			manifests: []reply.ErrorManifest{
+			manifests: append([]reply.ErrorManifest{
 				{"test-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
 			},
+				reply.ErrorManifest{
+					"test-401-error": reply.ErrorManifestItem{Message: "unauthorized", StatusCode: http.StatusUnauthorized},
+				},
+			),
 			err:                errors.New("test-404-error"),
 			expectedStatusCode: http.StatusNotFound,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {

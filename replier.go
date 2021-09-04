@@ -70,7 +70,7 @@ func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 	activeTransferObject := &defaultReplyTransferObject{}
 
 	replier := Replier{
-		errorManifest:  mergeManifestCollections(manifests...),
+		errorManifest:  mergeManifestCollections(manifests),
 		transferObject: activeTransferObject,
 	}
 
@@ -220,27 +220,24 @@ func sendHTTPResponse(writer http.ResponseWriter, transferObject TransferObject)
 
 // mergeManifestCollections handles merges the passed manifests into a singular
 // map
-func mergeManifestCollections(manifests ...ErrorManifest) ErrorManifest {
+func mergeManifestCollections(manifests []ErrorManifest) ErrorManifest {
 
 	mergedManifests := make(ErrorManifest)
 
 	for _, manifest := range manifests {
-		key, value := getManifestAttributes(manifest)
-		mergedManifests[key] = *value
+		getManifestItems(manifest, mergedManifests)
 	}
 
 	return mergedManifests
 }
 
-// getManifestAttributes returns key and value for pass manifest
-func getManifestAttributes(manifest ErrorManifest) (key string, value *ErrorManifestItem) {
+// getManifestItems pulls the key and items from the manifest and inserts into final manifest
+func getManifestItems(manifest ErrorManifest, finalManifest ErrorManifest) {
 
-	for k, v := range manifest {
-		key = k
-		value = &v
+	for key, item := range manifest {
+		finalManifest[key] = item
 	}
 
-	return key, value
 }
 
 // getInternalServertErrorManifestItem returns typical 500 error with text and message

@@ -199,6 +199,21 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+For readability and simplicity, you can use the `HTTP error response aide`. You can find a code snippet using this aide below:
+
+```go
+// inside of the request handler
+_ := replier.NewHTTPErrorResponse(w, exampleErr)
+```
+
+You can also add additional `headers` and `meta data` to the response by using the optional `WithHeaders` and/ or `WithMeta` response attributes respectively. For example:
+
+```go
+_ := replier.NewHTTPErrorResponse(w, exampleErr, reply.WithMeta(map[string]interface{}{
+    "example": "meta in error reponse",
+}))
+```
+
 #### JSON Representation
 
 `Error` responses are returned with the format.
@@ -249,6 +264,23 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
     })
 }
 ```
+
+For readability and simplicity, you can use the `HTTP token response aide`. You can find a code snippet using this aide below:
+
+```go
+// inside of the request handler
+_ := replier.NewHTTPTokenResponse(w, 200, "08a0a043-b532-4cea-8117-364739f2d994", "08b29914-09a8-4a4a-8aa5-b1ffaff266e6")
+```
+
+You can also add additional `headers` and `meta data` to the response by using the optional `WithHeaders` and/ or `WithMeta` response attributes respectively. For example:
+
+```go
+_ := replier.NewHTTPErrorResponse(w, 200, "08a0a043-b532-4cea-8117-364739f2d994", "08b29914-09a8-4a4a-8aa5-b1ffaff266e6", reply.WithMeta(map[string]interface{}{
+    "example": "meta in token reponse",
+}))
+```
+
+> NOTE: If you only want to return one token, pass an empty string, i.e. `""`. Although, it is important that you give at least one token string. 
 
 #### JSON Representation
 
@@ -311,6 +343,22 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+
+For readability and simplicity, you can use the `HTTP data (successful) response aide`. You can find a code snippet using this aide below:
+
+```go
+// inside of the request handler
+_ := replier.NewHTTPDataResponse(w, 201, u)
+```
+
+You can also add additional `headers` and `meta data` to the response by using the optional `WithHeaders` and/ or `WithMeta` response attributes respectively. For example:
+
+```go
+_ := replier.NewHTTPDataResponse(w, 201, u, reply.WithMeta(map[string]interface{}{
+    "example": "meta in data reponse",
+}))
+```
+
 #### JSON Representation
 
 `Data` responses are returned with the format.
@@ -342,9 +390,9 @@ When a `meta` is also declared, the response will have the following format. It 
 }
 ```
 
-### Default Response Type
+### Default (Blank) Response Type
 
-The `default` response returns `"{}"` with a status code of `200` if no `error`, `tokens`, `data` and `status code` is passed. If desired, another `status code` can be specified with `default` responses.
+The `default` (blank) response returns `"{}"` with a status code of `200` if no `error`, `tokens`, `data` and `status code` is passed. If desired, another `status code` can be specified with `default` responses.
 
 #### As code
 
@@ -356,10 +404,27 @@ replier := reply.NewReplier([]reply.ErrorManifest{})
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
     _ := replier.NewHTTPResponse(&reply.NewResponseRequest{
-        Writer: w,
+        Writer:     w,
+        StatusCode: 200,
     })
 }
 ```
+
+For readability and simplicity, you can use the `HTTP default (blank) response aide`. You can find a code snippet using this aide below:
+
+```go
+// inside of the request handler
+_ := replier.NewHTTPBlankResponse(w, 200)
+```
+
+You can also add additional `headers` and `meta data` to the response by using the optional `WithHeaders` and/ or `WithMeta` response attributes respectively. For example:
+
+```go
+_ := replier.NewHTTPBlankResponse(w, 200, reply.WithMeta(map[string]interface{}{
+    "example": "meta in default reponse",
+}))
+```
+
 
 #### JSON Representation
 

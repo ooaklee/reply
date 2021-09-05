@@ -185,9 +185,13 @@ func TestReplier_NewHTTPResponseForError(t *testing.T) {
 	}{
 		{
 			name: "Success - Resource not found",
-			manifests: []reply.ErrorManifest{
+			manifests: append([]reply.ErrorManifest{
 				{"test-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
 			},
+				reply.ErrorManifest{
+					"test-401-error": reply.ErrorManifestItem{Message: "unauthorized", StatusCode: http.StatusUnauthorized},
+				},
+			),
 			err:                errors.New("test-404-error"),
 			expectedStatusCode: http.StatusNotFound,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -236,6 +240,238 @@ func TestReplier_NewHTTPResponseForError(t *testing.T) {
 				Writer: w,
 				Error:  test.err,
 			})
+
+			assert.Equal(t, test.expectedStatusCode, w.Code)
+			test.assertResponse(w, t)
+		})
+	}
+}
+
+func TestReplier_AideNewHTTPErrorResponse(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		manifests          []reply.ErrorManifest
+		err                error
+		StatusCode         int
+		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
+		expectedStatusCode int
+	}{
+		{
+			name: "Success - Resource not found",
+			manifests: append([]reply.ErrorManifest{
+				{"test-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
+			},
+				reply.ErrorManifest{
+					"test-401-error": reply.ErrorManifestItem{Message: "unauthorized", StatusCode: http.StatusUnauthorized},
+				},
+			),
+			err:                errors.New("test-404-error"),
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				response := baseStatusMessageResponse{}
+
+				err := unmarshalResponseBody(w, &response)
+				if err != nil {
+					t.Fatalf("cannot get response content: %v", err)
+				}
+
+				expectedResponse := baseStatusMessageResponse{}
+				expectedResponse.Status.Message = "resource not found"
+				assert.Equal(t, expectedResponse, response)
+			},
+		},
+		{
+			name:               "Failure - Error not in manifest",
+			manifests:          []reply.ErrorManifest{},
+			err:                errors.New("test-404-error"),
+			expectedStatusCode: http.StatusInternalServerError,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				response := baseStatusMessageResponse{}
+
+				err := unmarshalResponseBody(w, &response)
+				if err != nil {
+					t.Fatalf("cannot get response content: %v", err)
+				}
+
+				expectedResponse := baseStatusMessageResponse{}
+				expectedResponse.Status.Message = "Internal Server Error"
+				assert.Equal(t, expectedResponse, response)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			w := httptest.NewRecorder()
+
+			replier := reply.NewReplier(test.manifests)
+
+			replier.NewHTTPErrorResponse(w, test.err)
+
+			assert.Equal(t, test.expectedStatusCode, w.Code)
+			test.assertResponse(w, t)
+		})
+	}
+}
+
+func TestReplier_AideNewHTTPDataResponse(t *testing.T) {
+
+	type user struct {
+		ID   string `json:"id,omitempty"`
+		Name string `json:"name,omitempty"`
+	}
+
+	tests := []struct {
+		name               string
+		manifests          []reply.ErrorManifest
+		data               interface{}
+		StatusCode         int
+		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
+		expectedStatusCode int
+	}{
+		{
+			name:       "Success - Created Mock user",
+			manifests:  []reply.ErrorManifest{},
+			StatusCode: 201,
+			data: user{
+				ID:   "new-uuid",
+				Name: "Test User",
+			},
+			expectedStatusCode: http.StatusCreated,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				response := baseTestResponse{}
+
+				err := unmarshalResponseBody(w, &response)
+				if err != nil {
+					t.Fatalf("cannot get response content: %v", err)
+				}
+
+				assert.Equal(t, baseTestResponse{Data: map[string]interface{}{"id": "new-uuid", "name": "Test User"}}, response)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			w := httptest.NewRecorder()
+
+			replier := reply.NewReplier(test.manifests)
+
+			replier.NewHTTPDataResponse(w, test.StatusCode, test.data)
+
+			assert.Equal(t, test.expectedStatusCode, w.Code)
+			test.assertResponse(w, t)
+		})
+	}
+}
+
+func TestReplier_AideNewHTTPTokenResponse(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		manifests          []reply.ErrorManifest
+		accessToken        string
+		refreshToken       string
+		StatusCode         int
+		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
+		expectedStatusCode int
+	}{
+		{
+			name:               "Success - Access Token response",
+			manifests:          []reply.ErrorManifest{},
+			accessToken:        "test-access-token",
+			StatusCode:         200,
+			expectedStatusCode: http.StatusOK,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				response := baseTestResponse{}
+
+				err := unmarshalResponseBody(w, &response)
+				if err != nil {
+					t.Fatalf("cannot get response content: %v", err)
+				}
+
+				assert.Equal(t, baseTestResponse{AccessToken: "test-access-token"}, response)
+			},
+		},
+		{
+			name:               "Success - Full Token response",
+			manifests:          []reply.ErrorManifest{},
+			accessToken:        "test-access-token",
+			refreshToken:       "test-refresh-token",
+			StatusCode:         200,
+			expectedStatusCode: http.StatusOK,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				response := baseTestResponse{}
+
+				err := unmarshalResponseBody(w, &response)
+				if err != nil {
+					t.Fatalf("cannot get response content: %v", err)
+				}
+
+				assert.Equal(t, baseTestResponse{AccessToken: "test-access-token", RefreshToken: "test-refresh-token"}, response)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			w := httptest.NewRecorder()
+
+			replier := reply.NewReplier(test.manifests)
+
+			replier.NewHTTPTokenResponse(w, test.StatusCode, test.accessToken, test.refreshToken)
+
+			assert.Equal(t, test.expectedStatusCode, w.Code)
+			test.assertResponse(w, t)
+		})
+	}
+}
+
+func TestReplier_AideNewHTTPBlankResponse(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		manifests          []reply.ErrorManifest
+		StatusCode         int
+		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
+		expectedStatusCode int
+	}{
+		{
+			name:               "Success",
+			manifests:          []reply.ErrorManifest{},
+			StatusCode:         201,
+			expectedStatusCode: http.StatusCreated,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				response := baseTestResponse{}
+
+				err := unmarshalResponseBody(w, &response)
+				if err != nil {
+					t.Fatalf("cannot get response content: %v", err)
+				}
+
+				assert.Equal(t, baseTestResponse{Data: "{}"}, response)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			w := httptest.NewRecorder()
+
+			replier := reply.NewReplier(test.manifests)
+
+			replier.NewHTTPBlankResponse(w, test.StatusCode)
 
 			assert.Equal(t, test.expectedStatusCode, w.Code)
 			test.assertResponse(w, t)

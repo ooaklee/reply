@@ -70,7 +70,7 @@ func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 	activeTransferObject := &defaultReplyTransferObject{}
 
 	replier := Replier{
-		errorManifest:  mergeManifestCollections(manifests...),
+		errorManifest:  mergeManifestCollections(manifests),
 		transferObject: activeTransferObject,
 	}
 
@@ -115,12 +115,12 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 
 	// Manage response for token
 	if response.AccessToken != "" || response.RefreshToken != "" {
-		return r.generateTokenResponse(response.AccessToken, response.RefreshToken, response.StatusCode)
+		return r.generateTokenResponse(response.AccessToken, response.RefreshToken)
 	}
 
 	// Manage response for data
 	if response.Data != nil {
-		return r.generateDataResponse(response.Data, response.StatusCode)
+		return r.generateDataResponse(response.Data)
 	}
 
 	return r.generateDefaultResponse()
@@ -128,31 +128,22 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 
 // generateDefaultResponse generates the default response
 func (r *Replier) generateDefaultResponse() error {
-	r.transferObject.SetStatusCode(defaultStatusCode)
 	r.transferObject.SetData(defaultResponseBody)
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
 // generateDataResponse generates response based on passed data
-func (r *Replier) generateDataResponse(data interface{}, statusCode int) error {
+func (r *Replier) generateDataResponse(data interface{}) error {
 	r.transferObject.SetData(data)
-
-	if statusCode == 0 {
-		r.transferObject.SetStatusCode(defaultStatusCode)
-	}
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
 // generateTokenResponse generates token response on passed tokens information
-func (r *Replier) generateTokenResponse(accessToken, refreshToken string, statusCode int) error {
+func (r *Replier) generateTokenResponse(accessToken, refreshToken string) error {
 	r.transferObject.SetAccessToken(accessToken)
 	r.transferObject.SetRefreshToken(refreshToken)
-
-	if statusCode == 0 {
-		r.transferObject.SetStatusCode(defaultStatusCode)
-	}
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
@@ -182,7 +173,13 @@ func (r *Replier) setUniversalAttributes(writer http.ResponseWriter, headers map
 	r.transferObject.SetWriter(writer)
 	r.setHeaders(headers)
 	r.transferObject.SetMeta(meta)
-	r.transferObject.SetStatusCode(statusCode)
+
+	if statusCode != 0 {
+		r.transferObject.SetStatusCode(statusCode)
+		return
+	}
+
+	r.transferObject.SetStatusCode(defaultStatusCode)
 }
 
 // setDefaultContentType handles setting default content type to JSON if
@@ -220,29 +217,25 @@ func sendHTTPResponse(writer http.ResponseWriter, transferObject TransferObject)
 	return nil
 }
 
-// mergeManifestCollections handles merges the passed manifests into a singular
-// map
-func mergeManifestCollections(manifests ...ErrorManifest) ErrorManifest {
+// mergeManifestCollections handles merging the passed manifests into a singular
+// manifest
+func mergeManifestCollections(manifests []ErrorManifest) ErrorManifest {
 
 	mergedManifests := make(ErrorManifest)
 
 	for _, manifest := range manifests {
-		key, value := getManifestAttributes(manifest)
-		mergedManifests[key] = *value
+		getManifestItems(manifest, mergedManifests)
 	}
 
 	return mergedManifests
 }
 
-// getManifestAttributes returns key and value for pass manifest
-func getManifestAttributes(manifest ErrorManifest) (key string, value *ErrorManifestItem) {
+// getManifestItems pulls the key and items from the manifest and inserts into final manifest
+func getManifestItems(manifest ErrorManifest, finalManifest ErrorManifest) {
 
-	for k, v := range manifest {
-		key = k
-		value = &v
+	for key, item := range manifest {
+		finalManifest[key] = item
 	}
-
-	return key, value
 }
 
 // getInternalServertErrorManifestItem returns typical 500 error with text and message
@@ -255,3 +248,125 @@ func getInternalServertErrorManifestItem() ErrorManifestItem {
 // Response aides simplify how users interact
 // with this library to create their success and
 // error driven responses.
+
+// ResponseAttributes used to add additional attributes to
+// response aides
+type ResponseAttributes func(*NewResponseRequest)
+
+// WithHeaders adds passed headers on to the generated response
+func WithHeaders(headers map[string]string) ResponseAttributes {
+	return func(r *NewResponseRequest) {
+		r.Headers = headers
+	}
+}
+
+// WithMeta adds passed meta data on to the generated response
+func WithMeta(meta map[string]interface{}) ResponseAttributes {
+	return func(r *NewResponseRequest) {
+		r.Meta = meta
+	}
+}
+
+// NewHTTPErrorResponse this response aide is used to create
+// response explicitly for errors. It will utilise the manifest
+// declared when creating its base replier.
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
+//
+// Note: If the passed error doesn't have a manifest entry, a 500 error will
+// be returned.
+func (r *Replier) NewHTTPErrorResponse(w http.ResponseWriter, err error, attributes ...ResponseAttributes) error {
+
+	request := NewResponseRequest{
+		Writer: w,
+		Error:  err,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
+}
+
+// NewHTTPDataResponse this response aide is used to create
+// "successful" response. "Successful" response are responses
+// that contain some sort of data that will be returned to the
+// consumer.
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
+func (r *Replier) NewHTTPDataResponse(w http.ResponseWriter, statusCode int, data interface{}, attributes ...ResponseAttributes) error {
+
+	request := NewResponseRequest{
+		Writer:     w,
+		Data:       data,
+		StatusCode: statusCode,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
+}
+
+// NewHTTPBlankResponse this response aide is used to create
+// a "blank" response. A blank response is one that contains
+// the response body "{}".
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
+func (r *Replier) NewHTTPBlankResponse(w http.ResponseWriter, statusCode int, attributes ...ResponseAttributes) error {
+
+	request := NewResponseRequest{
+		Writer:     w,
+		StatusCode: statusCode,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
+}
+
+// NewHTTPTokenResponse this response aide is used to create
+// the response for token(s). If the desired behaviour is to return
+// a single token, pass an empty string in the token not to be
+// included in the response.
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
+//
+// Note: At least one of the tokens must be specified or an error will
+// be returned
+func (r *Replier) NewHTTPTokenResponse(w http.ResponseWriter, statusCode int, accessToken, refreshToken string, attributes ...ResponseAttributes) error {
+
+	if isEmpty(accessToken) && isEmpty(refreshToken) {
+		return errors.New("reply/http-token-aide: failed at least one token must be returned")
+	}
+
+	request := NewResponseRequest{
+		Writer:       w,
+		StatusCode:   statusCode,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
+}
+
+// isEmpty checks if the passed string is empty
+func isEmpty(s string) bool {
+	return s == ""
+}

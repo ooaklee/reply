@@ -93,7 +93,7 @@ func simpleUsersAPINotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	// Do something with a server
 	serverErr := errors.New("example-404-error")
 
-	replier.NewHTTPResponse(&reply.NewResponseRequest{
+	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
 		Error:  serverErr,
 	})
@@ -106,7 +106,7 @@ func simpleUsersAPIHandler(w http.ResponseWriter, r *http.Request) {
 		{ID: 2, Name: "Sam Smith"},
 	}
 
-	replier.NewHTTPResponse(&reply.NewResponseRequest{
+	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
 		Data:   mockedQueriedUsers,
 	})
@@ -123,7 +123,7 @@ func simpleUsersAPINoManifestEntryHandler(w http.ResponseWriter, r *http.Request
 		"correlation-id": "d7c09ac2-fa46-4ece-bcde-1d7ad81d2230",
 	}
 
-	replier.NewHTTPResponse(&reply.NewResponseRequest{
+	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer:  w,
 		Error:   unregisterdErr,
 		Headers: mockAdditionalHeaders,
@@ -135,7 +135,7 @@ func simpleTokensAPIHandler(w http.ResponseWriter, r *http.Request) {
 	mockedAccessToken := "05e42c11-8bdd-423d-a2c1-c3c5c6604a30"
 	mockedRefreshToken := "0e95c426-d373-41a5-bfe1-08db322527bd"
 
-	replier.NewHTTPResponse(&reply.NewResponseRequest{
+	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer:       w,
 		AccessToken:  mockedAccessToken,
 		RefreshToken: mockedRefreshToken,
@@ -145,7 +145,7 @@ func simpleTokensAPIHandler(w http.ResponseWriter, r *http.Request) {
 func simpleAPIDefaultResponseHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something that only needs an empty response body, and 200 status code
-	replier.NewHTTPResponse(&reply.NewResponseRequest{
+	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
 	})
 }
@@ -161,6 +161,67 @@ func simpleUsersAPINotFoundCustomReplierHandler(w http.ResponseWriter, r *http.R
 	})
 }
 
+//////////////////////////////
+//// Handlers Using Aides ////
+
+func simpleUsersAPINotFoundUsingAideHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErr := errors.New("example-404-error")
+
+	_ = replier.NewHTTPErrorResponse(w, serverErr)
+}
+
+func simpleUsersAPIUsingAideHandler(w http.ResponseWriter, r *http.Request) {
+
+	mockedQueriedUsers := []user{
+		{ID: 1, Name: "John Doe"},
+		{ID: 2, Name: "Sam Smith"},
+	}
+
+	_ = replier.NewHTTPDataResponse(w, http.StatusCreated, mockedQueriedUsers)
+}
+
+func simpleUsersAPINoManifestEntryUsingAideHandler(w http.ResponseWriter, r *http.Request) {
+
+	// unregisterdErr an error that's  unregistered in manifest
+	// should return 500
+	unregisterdErr := errors.New("unexpected-error")
+
+	// mock passing additional headers in request
+	mockAdditionalHeaders := map[string]string{
+		"correlation-id": "d7c09ac2-fa46-4ece-bcde-1d7ad81d2230",
+	}
+
+	_ = replier.NewHTTPErrorResponse(w, unregisterdErr, reply.WithHeaders(mockAdditionalHeaders))
+}
+
+func simpleTokensAPIUsingAideHandler(w http.ResponseWriter, r *http.Request) {
+
+	mockedAccessToken := "05e42c11-8bdd-423d-a2c1-c3c5c6604a30"
+	mockedRefreshToken := "0e95c426-d373-41a5-bfe1-08db322527bd"
+
+	_ = replier.NewHTTPTokenResponse(w, http.StatusOK, mockedAccessToken, mockedRefreshToken)
+}
+
+func simpleAPIDefaultResponseUsingAideHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something that only needs an empty response body.
+	// Note: 200 status code will be returned if status code passed is 0.
+	// Otherwise passed code would be used
+	_ = replier.NewHTTPBlankResponse(w, http.StatusOK)
+}
+
+func simpleUsersAPINotFoundCustomReplierUsingAideHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErr := errors.New("example-404-error")
+
+	replierWithCustomTransitionObj.NewHTTPErrorResponse(w, serverErr)
+}
+
+/////////////////////////////
+
 func handleRequest() {
 	var port string = ":8081"
 
@@ -170,6 +231,13 @@ func handleRequest() {
 	http.HandleFunc("/tokens/refresh", simpleTokensAPIHandler)
 	http.HandleFunc("/defaults/1", simpleAPIDefaultResponseHandler)
 	http.HandleFunc("/custom/users/3", simpleUsersAPINotFoundCustomReplierHandler)
+
+	http.HandleFunc("/aides/users", simpleUsersAPIUsingAideHandler)
+	http.HandleFunc("/aides/users/3", simpleUsersAPINotFoundUsingAideHandler)
+	http.HandleFunc("/aides/users/4", simpleUsersAPINoManifestEntryUsingAideHandler)
+	http.HandleFunc("/aides/tokens/refresh", simpleTokensAPIUsingAideHandler)
+	http.HandleFunc("/aides/defaults/1", simpleAPIDefaultResponseUsingAideHandler)
+	http.HandleFunc("/aides/custom/users/3", simpleUsersAPINotFoundCustomReplierUsingAideHandler)
 
 	log.Printf("Serving simple API on port %s...", port)
 	log.Fatal(http.ListenAndServe(port, nil))

@@ -128,7 +128,6 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 
 // generateDefaultResponse generates the default response
 func (r *Replier) generateDefaultResponse() error {
-	r.transferObject.SetStatusCode(defaultStatusCode)
 	r.transferObject.SetData(defaultResponseBody)
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)

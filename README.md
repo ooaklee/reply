@@ -1,6 +1,38 @@
 # reply
 
-`reply` is a Go library that supports developers with standardising the responses sent from their API service(s). It allows users to predefine non-successful messages and their corresponding status code based on errors manifest passed to the `replier`.
+`reply` is a Go library that supports developers with shaping and standardising the responses sent from their API service(s). It also allows users to predefine non-successful messages and their corresponding status code based on the error manifest(s) passed to the `replier`.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Examples](#examples)
+- [How to create a `replier`](#how-to-create-a-replier)
+- [How to send response(s)](#how-to-send-responses)
+    - [Making use of error manifest](#making-use-of-error-manifest)
+    - [Sending client successful response](#sending-client-successful-response)
+- [Transfer Objects](#transfer-objects)
+- [Response Types](#response-types)
+- [Universal Attributes](#universal-attributes)
+- [Error Response Type](#error-response-type)
+    - [As code (including aide example)](#as-code-including-aide-example)
+    - [JSON Representation](#json-representation)
+    - [With `Meta`](#with-meta)
+- [Token Response Type](#token-response-type)
+    - [As code (including aide example)](#as-code-including-aide-example-1)
+    - [JSON Representation](#json-representation-1)
+    - [With `Meta`](#with-meta-1)
+- [Data Response Type](#data-response-type)
+    - [As code (including aide example)](#as-code-including-aide-example-2)
+    - [JSON Representation](#json-representation-2)
+    - [With `Meta`](#with-meta-2)
+- [Default (Blank) Response Type](#default-blank-response-type)
+    - [As code (including aide example)](#as-code-including-aide-example-3)
+    - [JSON Representation](#json-representation-3)
+    - [With `Meta`](#with-meta-3)
+- [Copyright](#copyright)
+
+---
+
 
 ## Installation
 
@@ -174,7 +206,7 @@ All core response types share universal attributes, which you can set in additio
 The `Error` response notifies the consumer when an error/ unexpected behaviour has occurred on the API. The message and the status code forwarded to the consumer is sourced from the error manifest. In the event the error's string
 representation isn't in the manifest; `reply` will return the consumer a "500 - Internal Server Error" response.
 
-#### As code
+#### As code (including aide example)
 
 To create an `error` response use the following code snippet:
 
@@ -245,7 +277,7 @@ When a `meta` is also declared, the response will have the following format. It 
 
 The `token` response sends the consumer tokens; currently, the supported token types are `acccess_token` and `refresh_token`. If either is passed in the response request, `reply` will default to this response type.
 
-#### As code
+#### As code (including aide example)
 
 To create a `token` response use the following code snippet:
 
@@ -314,7 +346,7 @@ The `data` response can be seen as a *successful* response. It parses the passed
 - `name` john doe
 - `dob` 1/1/1970
 
-#### As code
+#### As code (including aide example)
 
 To create a `data` response use the following code snippet:
 
@@ -394,7 +426,7 @@ When a `meta` is also declared, the response will have the following format. It 
 
 The `default` (blank) response returns `"{}"` with a status code of `200` if no `error`, `tokens`, `data` and `status code` is passed. If desired, another `status code` can be specified with `default` responses.
 
-#### As code
+#### As code (including aide example)
 
 To create a `default` response use the following code snippet:
 

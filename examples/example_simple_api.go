@@ -22,7 +22,7 @@ type fooReplyTransferObject struct {
 }
 
 type barEmbeddedExample struct {
-	Status       *reply.TransferObjectStatus `json:"status,omitempty"`
+	Errors       []reply.TransferObjectError `json:"errors,omitempty"`
 	Meta         map[string]interface{}      `json:"meta,omitempty"`
 	Data         interface{}                 `json:"data,omitempty"`
 	AccessToken  string                      `json:"access_token,omitempty"`
@@ -69,8 +69,8 @@ func (t *fooReplyTransferObject) RefreshTransferObject() reply.TransferObject {
 	return &fooReplyTransferObject{}
 }
 
-func (t *fooReplyTransferObject) SetStatus(transferObjectStatus *reply.TransferObjectStatus) {
-	t.Bar.Status = transferObjectStatus
+func (t *fooReplyTransferObject) SetErrors(transferObjectErrors []reply.TransferObjectError) {
+	t.Bar.Errors = transferObjectErrors
 }
 
 ////////////////////
@@ -81,7 +81,7 @@ type user struct {
 }
 
 var baseManifest []reply.ErrorManifest = []reply.ErrorManifest{
-	{"example-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
+	{"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
 }
 
 var replier *reply.Replier = reply.NewReplier(baseManifest)

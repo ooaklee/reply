@@ -12,6 +12,22 @@ import (
 	"net/http"
 )
 
+// TransferObjectError outlines expected methods of a transfer object error
+type TransferObjectError interface {
+	SetTitle(title string)
+	GetTitle() string
+	SetDetail(detail string)
+	GetDetail() string
+	SetAbout(about string)
+	GetAbout() string
+	SetStatusCode(status int)
+	GetStatusCode() string
+	SetCode(code string)
+	GetCode() string
+	SetMeta(meta interface{})
+	GetMeta() interface{}
+}
+
 // TransferObject outlines expected methods of a transfer object
 type TransferObject interface {
 	SetHeaders(headers map[string]string)
@@ -22,7 +38,7 @@ type TransferObject interface {
 	GetWriter() http.ResponseWriter
 	GetStatusCode() int
 	SetWriter(writer http.ResponseWriter)
-	SetStatus(transferObjectStatus *TransferObjectStatus)
+	SetErrors(transferObjectErrors []TransferObjectError)
 	RefreshTransferObject() TransferObject
 	SetData(data interface{})
 }
@@ -157,14 +173,27 @@ func (r *Replier) generateErrorResponse(err error) error {
 		log.Printf("reply/error-response: failed to find error manifest item for %v", err)
 	}
 
-	transferObjectStatus := &TransferObjectStatus{}
-	transferObjectStatus.SetMessage(manifestItem.Message)
+	transferObjectErrors := append([]TransferObjectError{}, ConvertErrorItemToTransferObjectError(manifestItem))
 
 	// Overwrite status code
 	r.transferObject.SetStatusCode(manifestItem.StatusCode)
-	r.transferObject.SetStatus(transferObjectStatus)
+	r.transferObject.SetErrors(transferObjectErrors)
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+}
+
+// ConvertErrorItemToTransferObjectError converts manifest item to valid
+// transfer object error
+func ConvertErrorItemToTransferObjectError(errorItem ErrorManifestItem) TransferObjectError {
+	convertedError := Error{}
+	convertedError.SetTitle(errorItem.Title)
+	convertedError.SetDetail(errorItem.Detail)
+	convertedError.SetAbout(errorItem.About)
+	convertedError.SetCode(errorItem.Code)
+	convertedError.SetStatusCode(errorItem.StatusCode)
+	convertedError.SetMeta(errorItem.Meta)
+
+	return &convertedError
 }
 
 // setUniversalAttributes sets the attributes that are common across all
@@ -240,7 +269,7 @@ func getManifestItems(manifest ErrorManifest, finalManifest ErrorManifest) {
 
 // getInternalServertErrorManifestItem returns typical 500 error with text and message
 func getInternalServertErrorManifestItem() ErrorManifestItem {
-	return ErrorManifestItem{Message: "Internal Server Error", StatusCode: http.StatusInternalServerError}
+	return ErrorManifestItem{Title: "Internal Server Error", StatusCode: http.StatusInternalServerError}
 }
 
 /////////////////////////////////////////////////

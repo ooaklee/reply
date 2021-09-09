@@ -50,7 +50,7 @@ There are several ways you can integrate `reply` into your application. Below, y
 // (Optional) Create a error manifest, to hold correlating error as string and it's manifest
 // item
 baseManifest := []reply.ErrorManifest{
-                {"example-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
+                {"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
             }
 
 // Create replier to manage the responses going back to consumer(s)
@@ -91,9 +91,12 @@ When the endpoint linked to the handler above is called, you should see the foll
 ```JSON
 
 {
-    "status": {
-        "message": "resource not found"
+  "errors": [
+    {
+      "title":  "resource not found",
+      "status": "404"
     }
+  ]
 }
 ```
 
@@ -143,6 +146,8 @@ When the endpoint linked to the handler above is called, you should see the foll
 ```
 
 ### Transfer Objects
+
+### TODO: Update to include newly added `Transfer Object Error`
 
 A `Transfer object` defines the shape of the response. if desired, users can create their own `transfer object` with additional logic, but it must satisfy the following interface:
 
@@ -213,7 +218,7 @@ To create an `error` response use the following code snippet:
 ```go
 // create error manifest
 baseManifest := []reply.ErrorManifest{
-                {"example-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
+                {"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
             }
 
 // create replier based on error manifest
@@ -252,9 +257,12 @@ _ = replier.NewHTTPErrorResponse(w, exampleErr, reply.WithMeta(map[string]interf
 
 ```JSON
 {
-    "status": {
-        "message": "resource not found"
+  "errors": [
+    {
+      "title":  "resource not found",
+      "status": "404"
     }
+  ]
 }
 ```
 
@@ -267,9 +275,12 @@ When a `meta` is also declared, the response will have the following format. It 
     "meta": {
         "example": "meta in error reponse"
     },
-    "status": {
-        "message": "resource not found"
-    }
+    "errors": [
+      {
+        "title":  "resource not found",
+        "status": "404"
+      }
+    ]
 }
 ```
 

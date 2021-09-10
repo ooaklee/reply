@@ -27,6 +27,7 @@ type TransferObjectError interface {
 	GetCode() string
 	SetMeta(meta interface{})
 	GetMeta() interface{}
+	RefreshTransferObject() TransferObjectError
 }
 
 // TransferObject outlines expected methods of a transfer object
@@ -65,6 +66,14 @@ func WithTransferObject(replacementTransferObject TransferObject) Option {
 	}
 }
 
+// WithTransferObjectError overwrites the transfer object used to represent
+// errors in response
+func WithTransferObjectError(replacementTransferObjectError TransferObjectError) Option {
+	return func(r *Replier) {
+		r.transferObjectError = replacementTransferObjectError
+	}
+}
+
 // NewResponseRequest holds attributes for response
 type NewResponseRequest struct {
 	Writer       http.ResponseWriter
@@ -81,18 +90,21 @@ type NewResponseRequest struct {
 
 // Replier handles managing responses
 type Replier struct {
-	errorManifest  ErrorManifest
-	transferObject TransferObject
+	errorManifest       ErrorManifest
+	transferObject      TransferObject
+	transferObjectError TransferObjectError
 }
 
 // NewReplier creates a replier
 func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 
 	activeTransferObject := &defaultReplyTransferObject{}
+	activeTransferObjectError := &Error{}
 
 	replier := Replier{
-		errorManifest:  mergeManifestCollections(manifests),
-		transferObject: activeTransferObject,
+		errorManifest:       mergeManifestCollections(manifests),
+		transferObject:      activeTransferObject,
+		transferObjectError: activeTransferObjectError,
 	}
 
 	// Add option add-ons on replier
@@ -189,10 +201,10 @@ func (r *Replier) generateMultiErrorResponse(errs []error) error {
 		if is5xx(manifestItem.StatusCode) {
 			return r.sendHTTPErrorsResponse(manifestItem.StatusCode, append(
 				[]TransferObjectError{},
-				ConvertErrorItemToTransferObjectError(manifestItem)))
+				r.convertErrorManifestItemToTransferObjectError(manifestItem)))
 		}
 
-		transferObjectErrors = append(transferObjectErrors, ConvertErrorItemToTransferObjectError(manifestItem))
+		transferObjectErrors = append(transferObjectErrors, r.convertErrorManifestItemToTransferObjectError(manifestItem))
 	}
 
 	statusCode := getAppropiateStatusCodeOrDefault(transferObjectErrors)
@@ -205,7 +217,7 @@ func (r *Replier) generateMultiErrorResponse(errs []error) error {
 func (r *Replier) generateErrorResponse(err error) error {
 	manifestItem := r.getErrorManifestItem(err)
 
-	transferObjectErrors := append([]TransferObjectError{}, ConvertErrorItemToTransferObjectError(manifestItem))
+	transferObjectErrors := append([]TransferObjectError{}, r.convertErrorManifestItemToTransferObjectError(manifestItem))
 
 	return r.sendHTTPErrorsResponse(manifestItem.StatusCode, transferObjectErrors)
 }
@@ -269,10 +281,13 @@ func (r *Replier) setHeaders(h map[string]string) {
 	}
 }
 
-// ConvertErrorItemToTransferObjectError converts manifest item to valid
+// convertErrorManifestItemToTransferObjectError converts manifest error item to valid
 // transfer object error
-func ConvertErrorItemToTransferObjectError(errorItem ErrorManifestItem) TransferObjectError {
-	convertedError := Error{}
+func (r *Replier) convertErrorManifestItemToTransferObjectError(errorItem ErrorManifestItem) TransferObjectError {
+
+	// Use fresh transfer object error
+	convertedError := r.transferObjectError.RefreshTransferObject()
+
 	convertedError.SetTitle(errorItem.Title)
 	convertedError.SetDetail(errorItem.Detail)
 	convertedError.SetAbout(errorItem.About)
@@ -280,7 +295,7 @@ func ConvertErrorItemToTransferObjectError(errorItem ErrorManifestItem) Transfer
 	convertedError.SetStatusCode(errorItem.StatusCode)
 	convertedError.SetMeta(errorItem.Meta)
 
-	return &convertedError
+	return convertedError
 }
 
 // getAppropiateStatusCodeOrDefault loops through collection of transfer object errors (first to last), and

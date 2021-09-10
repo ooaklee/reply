@@ -135,6 +135,12 @@ func (e *Error) GetMeta() interface{} {
 	return e.Meta
 }
 
+// RefreshTransferObject returns an empty instance of transfer object
+// error
+func (e *Error) RefreshTransferObject() TransferObjectError {
+	return &Error{}
+}
+
 // defaultReplyTransferObject handles structing response for client
 // consumption
 type defaultReplyTransferObject struct {

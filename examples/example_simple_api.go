@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/ooaklee/reply"
 )
@@ -75,6 +76,105 @@ func (t *fooReplyTransferObject) SetErrors(transferObjectErrors []reply.Transfer
 
 ////////////////////
 
+/////////////////////////////////////////////////
+//// Custom Transition Object Error Example /////
+// This is an example of how you can create a
+// custom response structure for errrors retutned
+// in the response
+
+type barError struct {
+
+	// Title a short summary of the problem
+	Title string `json:"title,omitempty"`
+
+	// Message a description of the error
+	Message string `json:"message,omitempty"`
+
+	// About holds the link that gives further insight into the error
+	About string `json:"about,omitempty"`
+
+	// More randomd top level attribute to make error
+	// difference
+	More struct {
+		// Status the HTTP status associated with error
+		Status string `json:"status,omitempty"`
+
+		// Code internal error code used to reference error
+		Code string `json:"code,omitempty"`
+
+		// Meta contains additional meta-information about the error
+		Meta interface{} `json:"meta,omitempty"`
+	} `json:"more,omitempty"`
+}
+
+// SetTitle adds title to error
+func (b *barError) SetTitle(title string) {
+	b.Title = title
+}
+
+// GetTitle returns error's title
+func (b *barError) GetTitle() string {
+	return b.Title
+}
+
+// SetDetail adds detail to error
+func (b *barError) SetDetail(detail string) {
+	b.Message = detail
+}
+
+// GetDetail return error's detail
+func (b *barError) GetDetail() string {
+	return b.Message
+}
+
+// SetAbout adds about to error
+func (b *barError) SetAbout(about string) {
+	b.About = about
+}
+
+// GetAbout return error's about
+func (b *barError) GetAbout() string {
+	return b.About
+}
+
+// SetStatusCode converts and add http status code to error
+func (b *barError) SetStatusCode(status int) {
+	b.More.Status = strconv.Itoa(status)
+}
+
+// GetStatusCode returns error's HTTP status code
+func (b *barError) GetStatusCode() string {
+	return b.More.Status
+}
+
+// SetCode adds internal code to error
+func (b *barError) SetCode(code string) {
+	b.More.Code = code
+}
+
+// GetCode returns error's internal code
+func (b *barError) GetCode() string {
+	return b.More.Code
+}
+
+// SetMeta adds meta property to error
+func (b *barError) SetMeta(meta interface{}) {
+	b.More.Meta = meta
+}
+
+// GetMeta returns error's meta property
+func (b *barError) GetMeta() interface{} {
+	return b.More.Meta
+}
+
+// RefreshTransferObject returns an empty instance of transfer object
+// error
+func (b *barError) RefreshTransferObject() reply.TransferObjectError {
+	return &barError{}
+}
+
+////////////////////
+
 type user struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
@@ -89,6 +189,8 @@ var baseManifest []reply.ErrorManifest = []reply.ErrorManifest{
 var replier *reply.Replier = reply.NewReplier(baseManifest)
 
 var replierWithCustomTransitionObj *reply.Replier = reply.NewReplier(baseManifest, reply.WithTransferObject(&fooReplyTransferObject{}))
+
+var replierWithCustomTransitionObjError *reply.Replier = reply.NewReplier(baseManifest, reply.WithTransferObjectError(&barError{}))
 
 func simpleUsersAPINotFoundHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -177,6 +279,14 @@ func simpleUsersAPINotFoundCustomReplierHandler(w http.ResponseWriter, r *http.R
 //////////////////////////////
 //// Handlers Using Aides ////
 
+func simpleUsersAPIMultiErrorUsingAideWithCustomErrorHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+
+	_ = replierWithCustomTransitionObjError.NewHTTPMultiErrorResponse(w, serverErrs)
+}
+
 func simpleUsersAPIMultiErrorUsingAideHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
@@ -255,6 +365,7 @@ func handleRequest() {
 	http.HandleFunc("/custom/users/3", simpleUsersAPINotFoundCustomReplierHandler)
 
 	http.HandleFunc("/aides/errors", simpleUsersAPIMultiErrorUsingAideHandler)
+	http.HandleFunc("/aides/errors/custom", simpleUsersAPIMultiErrorUsingAideWithCustomErrorHandler)
 	http.HandleFunc("/aides/users", simpleUsersAPIUsingAideHandler)
 	http.HandleFunc("/aides/users/3", simpleUsersAPINotFoundUsingAideHandler)
 	http.HandleFunc("/aides/users/4", simpleUsersAPINoManifestEntryUsingAideHandler)

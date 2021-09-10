@@ -1,5 +1,12 @@
 # Reply Release Notes
 
+## [v1.0.0-alpha.2](https://github.com/ooaklee/reply/releases/tag/v1.0.0-alpha.2)
+2021-09-10
+
+* Refactored logic to allow users to pass custom error transfer objects (TransferObjectError), `reply.WithTransferObjectError`
+  * Added `RefreshTransferObject` method call to `TransferObjectError`
+* Updated `example simple api` to use the new Replier Option and update the `transfer object error`
+
 ## [v1.0.0-alpha.1](https://github.com/ooaklee/reply/releases/tag/v1.0.0-alpha.1)
 2021-09-10
 

@@ -46,27 +46,27 @@ type TransferObject interface {
 }
 
 const (
-	// defaultResponseBody returns default response body
+	// defaultResponseBody is the default response body
 	defaultResponseBody = "{}"
 
-	// defaultStatusCode returns default response status code
+	// defaultStatusCode is the default response status code
 	defaultStatusCode = http.StatusOK
 
-	// defaultErrorsStatusCode returns default status code for errors
+	// defaultErrorsStatusCode is the default status code for errors
 	defaultErrorsStatusCode = http.StatusBadRequest
 )
 
-// Option used to build on top of default features
+// Option used to build on top of default Replier features
 type Option func(*Replier)
 
-// WithTransferObject overwrites the transfer object used for response
+// WithTransferObject sets the base transfer object used for response
 func WithTransferObject(replacementTransferObject TransferObject) Option {
 	return func(r *Replier) {
 		r.transferObject = replacementTransferObject
 	}
 }
 
-// WithTransferObjectError overwrites the transfer object used to represent
+// WithTransferObjectError sets the transfer object error used to represent
 // errors in response
 func WithTransferObjectError(replacementTransferObjectError TransferObjectError) Option {
 	return func(r *Replier) {
@@ -90,12 +90,23 @@ type NewResponseRequest struct {
 
 // Replier handles managing responses
 type Replier struct {
-	errorManifest       ErrorManifest
-	transferObject      TransferObject
+	// Error manifest used by Replier to pull corresponsing error items to build
+	// response error(s).
+	errorManifest ErrorManifest
+
+	// Top-level response base with core and special attributes used to build out
+	// response.
+	transferObject TransferObject
+
+	// Error object base used to shape error objects in response
 	transferObjectError TransferObjectError
 }
 
-// NewReplier creates a replier
+// NewReplier returns a new Replier pointer that shapes and handles both
+// successful and error based responses.
+//
+// NOTE - Both default object(s) can be overwritten using the  chained Options, i.e.
+// `WithTransferObject` or `WithTransferObjectError`
 func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 
 	activeTransferObject := &defaultReplyTransferObject{}
@@ -301,7 +312,7 @@ func (r *Replier) convertErrorManifestItemToTransferObjectError(errorItem ErrorM
 // getAppropiateStatusCodeOrDefault loops through collection of transfer object errors (first to last), and
 // attempts to pull and convert status code (string).
 //
-// NOTE: If error occurs the next element will be attempted. In the event no elements are left, the default
+// NOTE - If error occurs the next element will be attempted. In the event no elements are left, the default
 // error status code (400) will be returned
 func getAppropiateStatusCodeOrDefault(transferObjectErrors []TransferObjectError) int {
 
@@ -397,7 +408,7 @@ func WithMeta(meta map[string]interface{}) ResponseAttributes {
 // With this aide, if desired, you can add additional attributes by using the
 // WithHeaders and/ or WithMeta optional response attributes.
 //
-// Note: If ANY of the passed errors do not have a manifest entry, a single
+// NOTE - If ANY of the passed errors do not have a manifest entry, a single
 // 500 error will be returned.
 func (r *Replier) NewHTTPMultiErrorResponse(w http.ResponseWriter, errs []error, attributes ...ResponseAttributes) error {
 
@@ -421,7 +432,7 @@ func (r *Replier) NewHTTPMultiErrorResponse(w http.ResponseWriter, errs []error,
 // With this aide, if desired, you can add additional attributes by using the
 // WithHeaders and/ or WithMeta optional response attributes.
 //
-// Note: If the passed error doesn't have a manifest entry, a 500 error will
+// NOTE - If the passed error doesn't have a manifest entry, a 500 error will
 // be returned.
 func (r *Replier) NewHTTPErrorResponse(w http.ResponseWriter, err error, attributes ...ResponseAttributes) error {
 
@@ -490,7 +501,7 @@ func (r *Replier) NewHTTPBlankResponse(w http.ResponseWriter, statusCode int, at
 // With this aide, if desired, you can add additional attributes by using the
 // WithHeaders and/ or WithMeta optional response attributes.
 //
-// Note: At least one of the tokens must be specified or an error will
+// NOTE - At least one of the tokens must be specified or an error will
 // be returned
 func (r *Replier) NewHTTPTokenResponse(w http.ResponseWriter, statusCode int, accessToken, refreshToken string, attributes ...ResponseAttributes) error {
 

@@ -1,5 +1,36 @@
 # Reply Release Notes
 
+## [v1.0.0-alpha.1](https://github.com/ooaklee/reply/releases/tag/v1.0.0-alpha.1)
+2021-09-10
+
+* Added new aide `NewHTTPMultiErrorResponse` to support multiple error response
+* Updated `example simple api` to use the new aide `NewHTTPMultiErrorResponse`
+* Added logic to handle/ create multiple error response
+* Refactor code to make it more readable with new logic
+
+## [v1.0.0-alpha](https://github.com/ooaklee/reply/releases/tag/v1.0.0-alpha)
+2021-09-09
+
+* Update top-level response members from `meta`, `status` and `data` **->** `meta`, `errors` and `data`
+* Updated underlying logic to how an error is handled
+* Updated `Manifest Error Item` attributes
+
+## [v0.2.0](https://github.com/ooaklee/reply/releases/tag/v0.2.0)
+2021-09-04
+
+* Fixed bug in logic for merging error manifests
+* Added helper functions (aides) to help users more efficiently use the library
+
+## [v0.2.0-alpha.1](https://github.com/ooaklee/reply/releases/tag/v0.2.0-alpha.1)
+2021-09-04
+
+* Fixed bug in logic for merging error manifests
+
+## [v0.2.0-alpha](https://github.com/ooaklee/reply/releases/tag/v0.2.0-alpha)
+2021-09-03
+
+* Initial logic for helper functions (`aides`) to help users more efficiently use the library
+
 ## [v0.1.1](https://github.com/ooaklee/reply/releases/tag/v0.1.1)
 2021-08-31
 

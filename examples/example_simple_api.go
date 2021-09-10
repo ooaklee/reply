@@ -82,6 +82,8 @@ type user struct {
 
 var baseManifest []reply.ErrorManifest = []reply.ErrorManifest{
 	{"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
+	{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest}},
+	{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
 }
 
 var replier *reply.Replier = reply.NewReplier(baseManifest)
@@ -96,6 +98,17 @@ func simpleUsersAPINotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
 		Error:  serverErr,
+	})
+}
+
+func simpleUsersAPIMultiErrorHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+
+	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+		Writer: w,
+		Errors: serverErrs,
 	})
 }
 
@@ -164,6 +177,14 @@ func simpleUsersAPINotFoundCustomReplierHandler(w http.ResponseWriter, r *http.R
 //////////////////////////////
 //// Handlers Using Aides ////
 
+func simpleUsersAPIMultiErrorUsingAideHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+
+	_ = replier.NewHTTPMultiErrorResponse(w, serverErrs)
+}
+
 func simpleUsersAPINotFoundUsingAideHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
@@ -225,6 +246,7 @@ func simpleUsersAPINotFoundCustomReplierUsingAideHandler(w http.ResponseWriter, 
 func handleRequest() {
 	var port string = ":8081"
 
+	http.HandleFunc("/errors", simpleUsersAPIMultiErrorHandler)
 	http.HandleFunc("/users", simpleUsersAPIHandler)
 	http.HandleFunc("/users/3", simpleUsersAPINotFoundHandler)
 	http.HandleFunc("/users/4", simpleUsersAPINoManifestEntryHandler)
@@ -232,6 +254,7 @@ func handleRequest() {
 	http.HandleFunc("/defaults/1", simpleAPIDefaultResponseHandler)
 	http.HandleFunc("/custom/users/3", simpleUsersAPINotFoundCustomReplierHandler)
 
+	http.HandleFunc("/aides/errors", simpleUsersAPIMultiErrorUsingAideHandler)
 	http.HandleFunc("/aides/users", simpleUsersAPIUsingAideHandler)
 	http.HandleFunc("/aides/users/3", simpleUsersAPINotFoundUsingAideHandler)
 	http.HandleFunc("/aides/users/4", simpleUsersAPINoManifestEntryUsingAideHandler)

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 // TransferObjectError outlines expected methods of a transfer object error
@@ -49,6 +50,9 @@ const (
 
 	// defaultStatusCode returns default response status code
 	defaultStatusCode = http.StatusOK
+
+	// defaultErrorsStatusCode returns default status code for errors
+	defaultErrorsStatusCode = http.StatusBadRequest
 )
 
 // Option used to build on top of default features
@@ -70,6 +74,7 @@ type NewResponseRequest struct {
 	StatusCode   int
 	Message      string
 	Error        error
+	Errors       []error
 	AccessToken  string
 	RefreshToken string
 }
@@ -124,6 +129,11 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 
 	r.setUniversalAttributes(response.Writer, response.Headers, response.Meta, response.StatusCode)
 
+	// Manage response for multi errors
+	if len(response.Errors) > 0 {
+		return r.generateMultiErrorResponse(response.Errors)
+	}
+
 	// Manage response for error
 	if response.Error != nil {
 		return r.generateErrorResponse(response.Error)
@@ -164,36 +174,61 @@ func (r *Replier) generateTokenResponse(accessToken, refreshToken string) error 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
+// generateMultiErrorResponse generates error response for multiple
+// errors
+//
+// NOTE - If at anytime one of the errors return a 5XX error manifest item,
+// only the 5XX error will be returned
+func (r *Replier) generateMultiErrorResponse(errs []error) error {
+
+	transferObjectErrors := []TransferObjectError{}
+
+	for _, err := range errs {
+		manifestItem := r.getErrorManifestItem(err)
+
+		if is5xx(manifestItem.StatusCode) {
+			return r.sendHTTPErrorsResponse(manifestItem.StatusCode, append(
+				[]TransferObjectError{},
+				ConvertErrorItemToTransferObjectError(manifestItem)))
+		}
+
+		transferObjectErrors = append(transferObjectErrors, ConvertErrorItemToTransferObjectError(manifestItem))
+	}
+
+	statusCode := getAppropiateStatusCodeOrDefault(transferObjectErrors)
+
+	return r.sendHTTPErrorsResponse(statusCode, transferObjectErrors)
+}
+
 // generateErrorResponse generates correct error response based on passed
 // error
 func (r *Replier) generateErrorResponse(err error) error {
+	manifestItem := r.getErrorManifestItem(err)
+
+	transferObjectErrors := append([]TransferObjectError{}, ConvertErrorItemToTransferObjectError(manifestItem))
+
+	return r.sendHTTPErrorsResponse(manifestItem.StatusCode, transferObjectErrors)
+}
+
+// sendHTTPErrorsResponse handles setting status code and transfer object errors before
+// attempting to send response
+func (r *Replier) sendHTTPErrorsResponse(statusCode int, transferObjectErrors []TransferObjectError) error {
+	r.transferObject.SetStatusCode(statusCode)
+	r.transferObject.SetErrors(transferObjectErrors)
+
+	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
+}
+
+// getErrorManifestItem returns the corresponding manifest Item if found,
+// otherwise the internal server error is returned
+func (r *Replier) getErrorManifestItem(err error) ErrorManifestItem {
 	manifestItem, ok := r.errorManifest[err.Error()]
 	if !ok {
 		manifestItem = getInternalServertErrorManifestItem()
 		log.Printf("reply/error-response: failed to find error manifest item for %v", err)
 	}
 
-	transferObjectErrors := append([]TransferObjectError{}, ConvertErrorItemToTransferObjectError(manifestItem))
-
-	// Overwrite status code
-	r.transferObject.SetStatusCode(manifestItem.StatusCode)
-	r.transferObject.SetErrors(transferObjectErrors)
-
-	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
-}
-
-// ConvertErrorItemToTransferObjectError converts manifest item to valid
-// transfer object error
-func ConvertErrorItemToTransferObjectError(errorItem ErrorManifestItem) TransferObjectError {
-	convertedError := Error{}
-	convertedError.SetTitle(errorItem.Title)
-	convertedError.SetDetail(errorItem.Detail)
-	convertedError.SetAbout(errorItem.About)
-	convertedError.SetCode(errorItem.Code)
-	convertedError.SetStatusCode(errorItem.StatusCode)
-	convertedError.SetMeta(errorItem.Meta)
-
-	return &convertedError
+	return manifestItem
 }
 
 // setUniversalAttributes sets the attributes that are common across all
@@ -232,6 +267,49 @@ func (r *Replier) setHeaders(h map[string]string) {
 	for headerKey, headerValue := range h {
 		r.transferObject.GetWriter().Header().Set(headerKey, headerValue)
 	}
+}
+
+// ConvertErrorItemToTransferObjectError converts manifest item to valid
+// transfer object error
+func ConvertErrorItemToTransferObjectError(errorItem ErrorManifestItem) TransferObjectError {
+	convertedError := Error{}
+	convertedError.SetTitle(errorItem.Title)
+	convertedError.SetDetail(errorItem.Detail)
+	convertedError.SetAbout(errorItem.About)
+	convertedError.SetCode(errorItem.Code)
+	convertedError.SetStatusCode(errorItem.StatusCode)
+	convertedError.SetMeta(errorItem.Meta)
+
+	return &convertedError
+}
+
+// getAppropiateStatusCodeOrDefault loops through collection of transfer object errors (first to last), and
+// attempts to pull and convert status code (string).
+//
+// NOTE: If error occurs the next element will be attempted. In the event no elements are left, the default
+// error status code (400) will be returned
+func getAppropiateStatusCodeOrDefault(transferObjectErrors []TransferObjectError) int {
+
+	for _, transferObjectError := range transferObjectErrors {
+
+		statusCode, err := strconv.Atoi(transferObjectError.GetStatusCode())
+		if err != nil {
+			continue
+		}
+
+		return statusCode
+	}
+
+	return defaultErrorsStatusCode
+}
+
+// is5xx returns whether status code is a 5xx
+func is5xx(statusCode int) bool {
+	if statusCode >= 500 && statusCode <= 599 {
+		return true
+	}
+
+	return false
 }
 
 // sendHTTPResponse handles sending response based on the transfer object
@@ -294,6 +372,31 @@ func WithMeta(meta map[string]interface{}) ResponseAttributes {
 	return func(r *NewResponseRequest) {
 		r.Meta = meta
 	}
+}
+
+// NewHTTPMultiErrorResponse this response aide is used to create
+// a multi error response. It will utilise the manifest
+// declared when creating its base replier to pull all corresponding
+// error manifest items.
+//
+// With this aide, if desired, you can add additional attributes by using the
+// WithHeaders and/ or WithMeta optional response attributes.
+//
+// Note: If ANY of the passed errors do not have a manifest entry, a single
+// 500 error will be returned.
+func (r *Replier) NewHTTPMultiErrorResponse(w http.ResponseWriter, errs []error, attributes ...ResponseAttributes) error {
+
+	request := NewResponseRequest{
+		Writer: w,
+		Errors: errs,
+	}
+
+	// Add attributes to response request
+	for _, attribute := range attributes {
+		attribute(&request)
+	}
+
+	return r.NewHTTPResponse(&request)
 }
 
 // NewHTTPErrorResponse this response aide is used to create

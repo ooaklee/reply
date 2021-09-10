@@ -186,10 +186,10 @@ func TestReplier_NewHTTPResponseForError(t *testing.T) {
 		{
 			name: "Success - Resource not found",
 			manifests: append([]reply.ErrorManifest{
-				{"test-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
+				{"test-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
 			},
 				reply.ErrorManifest{
-					"test-401-error": reply.ErrorManifestItem{Message: "unauthorized", StatusCode: http.StatusUnauthorized},
+					"test-401-error": reply.ErrorManifestItem{Title: "unauthorized", StatusCode: http.StatusUnauthorized},
 				},
 			),
 			err:                errors.New("test-404-error"),
@@ -260,10 +260,10 @@ func TestReplier_AideNewHTTPErrorResponse(t *testing.T) {
 		{
 			name: "Success - Resource not found",
 			manifests: append([]reply.ErrorManifest{
-				{"test-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
+				{"test-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
 			},
 				reply.ErrorManifest{
-					"test-401-error": reply.ErrorManifestItem{Message: "unauthorized", StatusCode: http.StatusUnauthorized},
+					"test-401-error": reply.ErrorManifestItem{Title: "unauthorized", StatusCode: http.StatusUnauthorized},
 				},
 			),
 			err:                errors.New("test-404-error"),

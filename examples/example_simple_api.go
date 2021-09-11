@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/ooaklee/reply"
 )
@@ -22,7 +23,7 @@ type fooReplyTransferObject struct {
 }
 
 type barEmbeddedExample struct {
-	Status       *reply.TransferObjectStatus `json:"status,omitempty"`
+	Errors       []reply.TransferObjectError `json:"errors,omitempty"`
 	Meta         map[string]interface{}      `json:"meta,omitempty"`
 	Data         interface{}                 `json:"data,omitempty"`
 	AccessToken  string                      `json:"access_token,omitempty"`
@@ -45,11 +46,11 @@ func (t *fooReplyTransferObject) SetWriter(writer http.ResponseWriter) {
 	t.HTTPWriter = writer
 }
 
-func (t *fooReplyTransferObject) SetAccessToken(token string) {
+func (t *fooReplyTransferObject) SetTokenOne(token string) {
 	t.Bar.AccessToken = token
 }
 
-func (t *fooReplyTransferObject) SetRefreshToken(token string) {
+func (t *fooReplyTransferObject) SetTokenTwo(token string) {
 	t.Bar.RefreshToken = token
 }
 
@@ -69,8 +70,107 @@ func (t *fooReplyTransferObject) RefreshTransferObject() reply.TransferObject {
 	return &fooReplyTransferObject{}
 }
 
-func (t *fooReplyTransferObject) SetStatus(transferObjectStatus *reply.TransferObjectStatus) {
-	t.Bar.Status = transferObjectStatus
+func (t *fooReplyTransferObject) SetErrors(transferObjectErrors []reply.TransferObjectError) {
+	t.Bar.Errors = transferObjectErrors
+}
+
+////////////////////
+
+/////////////////////////////////////////////////
+//// Custom Transition Object Error Example /////
+// This is an example of how you can create a
+// custom response structure for errrors retutned
+// in the response
+
+type barError struct {
+
+	// Title a short summary of the problem
+	Title string `json:"title,omitempty"`
+
+	// Message a description of the error
+	Message string `json:"message,omitempty"`
+
+	// About holds the link that gives further insight into the error
+	About string `json:"about,omitempty"`
+
+	// More randomd top level attribute to make error
+	// difference
+	More struct {
+		// Status the HTTP status associated with error
+		Status string `json:"status,omitempty"`
+
+		// Code internal error code used to reference error
+		Code string `json:"code,omitempty"`
+
+		// Meta contains additional meta-information about the error
+		Meta interface{} `json:"meta,omitempty"`
+	} `json:"more,omitempty"`
+}
+
+// SetTitle adds title to error
+func (b *barError) SetTitle(title string) {
+	b.Title = title
+}
+
+// GetTitle returns error's title
+func (b *barError) GetTitle() string {
+	return b.Title
+}
+
+// SetDetail adds detail to error
+func (b *barError) SetDetail(detail string) {
+	b.Message = detail
+}
+
+// GetDetail return error's detail
+func (b *barError) GetDetail() string {
+	return b.Message
+}
+
+// SetAbout adds about to error
+func (b *barError) SetAbout(about string) {
+	b.About = about
+}
+
+// GetAbout return error's about
+func (b *barError) GetAbout() string {
+	return b.About
+}
+
+// SetStatusCode converts and add http status code to error
+func (b *barError) SetStatusCode(status int) {
+	b.More.Status = strconv.Itoa(status)
+}
+
+// GetStatusCode returns error's HTTP status code
+func (b *barError) GetStatusCode() string {
+	return b.More.Status
+}
+
+// SetCode adds internal code to error
+func (b *barError) SetCode(code string) {
+	b.More.Code = code
+}
+
+// GetCode returns error's internal code
+func (b *barError) GetCode() string {
+	return b.More.Code
+}
+
+// SetMeta adds meta property to error
+func (b *barError) SetMeta(meta interface{}) {
+	b.More.Meta = meta
+}
+
+// GetMeta returns error's meta property
+func (b *barError) GetMeta() interface{} {
+	return b.More.Meta
+}
+
+// RefreshTransferObject returns an empty instance of transfer object
+// error
+func (b *barError) RefreshTransferObject() reply.TransferObjectError {
+	return &barError{}
 }
 
 ////////////////////
@@ -80,13 +180,35 @@ type user struct {
 	Name string `json:"name"`
 }
 
+// Example implementation of Error Manifest
 var baseManifest []reply.ErrorManifest = []reply.ErrorManifest{
-	{"example-404-error": reply.ErrorManifestItem{Message: "resource not found", StatusCode: http.StatusNotFound}},
+	{"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
+	{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
+	{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
 }
 
+// Replier with default Transition Object & Transition Object Error
 var replier *reply.Replier = reply.NewReplier(baseManifest)
 
+// Replier with custom Transition Object & default Transition Object Error
 var replierWithCustomTransitionObj *reply.Replier = reply.NewReplier(baseManifest, reply.WithTransferObject(&fooReplyTransferObject{}))
+
+// Replier with standard Transition Object & custom Transition Object Error
+var replierWithCustomTransitionObjError *reply.Replier = reply.NewReplier(baseManifest, reply.WithTransferObjectError(&barError{}))
+
+// Replier with custom Transition Object & custom Transition Object Error
+var replierWithCustomTransitionObjs *reply.Replier = reply.NewReplier(baseManifest, reply.WithTransferObjectError(&barError{}), reply.WithTransferObject(&fooReplyTransferObject{}))
+
+func simpleUsersAPINotFoundWithCustomTransitionObjsHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErr := errors.New("example-404-error")
+
+	_ = replierWithCustomTransitionObjs.NewHTTPResponse(&reply.NewResponseRequest{
+		Writer: w,
+		Error:  serverErr,
+	})
+}
 
 func simpleUsersAPINotFoundHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -96,6 +218,17 @@ func simpleUsersAPINotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
 		Error:  serverErr,
+	})
+}
+
+func simpleUsersAPIMultiErrorHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+
+	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+		Writer: w,
+		Errors: serverErrs,
 	})
 }
 
@@ -136,9 +269,9 @@ func simpleTokensAPIHandler(w http.ResponseWriter, r *http.Request) {
 	mockedRefreshToken := "0e95c426-d373-41a5-bfe1-08db322527bd"
 
 	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer:       w,
-		AccessToken:  mockedAccessToken,
-		RefreshToken: mockedRefreshToken,
+		Writer:   w,
+		TokenOne: mockedAccessToken,
+		TokenTwo: mockedRefreshToken,
 	})
 }
 
@@ -163,6 +296,22 @@ func simpleUsersAPINotFoundCustomReplierHandler(w http.ResponseWriter, r *http.R
 
 //////////////////////////////
 //// Handlers Using Aides ////
+
+func simpleUsersAPIMultiErrorUsingAideWithCustomErrorHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+
+	_ = replierWithCustomTransitionObjError.NewHTTPMultiErrorResponse(w, serverErrs)
+}
+
+func simpleUsersAPIMultiErrorUsingAideHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+
+	_ = replier.NewHTTPMultiErrorResponse(w, serverErrs)
+}
 
 func simpleUsersAPINotFoundUsingAideHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -225,19 +374,23 @@ func simpleUsersAPINotFoundCustomReplierUsingAideHandler(w http.ResponseWriter, 
 func handleRequest() {
 	var port string = ":8081"
 
+	http.HandleFunc("/errors", simpleUsersAPIMultiErrorHandler)
 	http.HandleFunc("/users", simpleUsersAPIHandler)
 	http.HandleFunc("/users/3", simpleUsersAPINotFoundHandler)
 	http.HandleFunc("/users/4", simpleUsersAPINoManifestEntryHandler)
 	http.HandleFunc("/tokens/refresh", simpleTokensAPIHandler)
 	http.HandleFunc("/defaults/1", simpleAPIDefaultResponseHandler)
-	http.HandleFunc("/custom/users/3", simpleUsersAPINotFoundCustomReplierHandler)
+	http.HandleFunc("/users/3/custom", simpleUsersAPINotFoundCustomReplierHandler)
+	http.HandleFunc("/users/404/custom", simpleUsersAPINotFoundWithCustomTransitionObjsHandler)
 
+	http.HandleFunc("/aides/errors", simpleUsersAPIMultiErrorUsingAideHandler)
+	http.HandleFunc("/aides/errors/custom", simpleUsersAPIMultiErrorUsingAideWithCustomErrorHandler)
 	http.HandleFunc("/aides/users", simpleUsersAPIUsingAideHandler)
 	http.HandleFunc("/aides/users/3", simpleUsersAPINotFoundUsingAideHandler)
 	http.HandleFunc("/aides/users/4", simpleUsersAPINoManifestEntryUsingAideHandler)
 	http.HandleFunc("/aides/tokens/refresh", simpleTokensAPIUsingAideHandler)
 	http.HandleFunc("/aides/defaults/1", simpleAPIDefaultResponseUsingAideHandler)
-	http.HandleFunc("/aides/custom/users/3", simpleUsersAPINotFoundCustomReplierUsingAideHandler)
+	http.HandleFunc("/aides/users/3/custom", simpleUsersAPINotFoundCustomReplierUsingAideHandler)
 
 	log.Printf("Serving simple API on port %s...", port)
 	log.Fatal(http.ListenAndServe(port, nil))

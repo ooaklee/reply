@@ -369,7 +369,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			},
 		},
 		{
-			name:      "Success - Data response with Additional Headers",
+			name:      "Success - Token response with Additional Headers",
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				TokenOne:   "test-token-1",
@@ -388,7 +388,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			},
 		},
 		{
-			name:      "Success - Data response with Meta-Information",
+			name:      "Success - Token response with Meta-Information",
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				StatusCode: 200,
@@ -407,7 +407,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			},
 		},
 		{
-			name:      "Success - Data response with Meta-Information & Additional Header",
+			name:      "Success - Token response with Meta-Information & Additional Header",
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				StatusCode: 200,
@@ -1068,52 +1068,107 @@ func TestReplier_NewHTTPDataResponseAide(t *testing.T) {
 	}
 }
 
-func TestReplier_AideNewHTTPTokenResponse(t *testing.T) {
+func TestReplier_NewHTTPTokenResponseAide(t *testing.T) {
 
 	tests := []struct {
 		name               string
 		manifests          []reply.ErrorManifest
-		accessToken        string
-		refreshToken       string
-		StatusCode         int
+		passedStatusCode   int
+		passedTokenOne     string
+		passedTokenTwo     string
+		responseAttributes []reply.ResponseAttributes
+		transferObject     reply.TransferObject
+		transferObjecError reply.TransferObjectError
 		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
 		expectedStatusCode int
 	}{
 		{
-			name:               "Success - Access Token response",
-			manifests:          []reply.ErrorManifest{},
-			accessToken:        "test-access-token",
-			StatusCode:         200,
+			name:               "Success - Token response",
+			manifests:          getEmptyErrorManifest(),
+			passedTokenOne:     "test-token-1",
+			passedTokenTwo:     "test-token-2",
+			passedStatusCode:   200,
 			expectedStatusCode: http.StatusOK,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
-				response := baseTestResponse{}
+				returnedBody := w.Body.String()
 
-				err := unmarshalResponseBody(w, &response)
-				if err != nil {
-					t.Fatalf("cannot get response content: %v", err)
-				}
+				assert.Equal(t, stringWithNewLine(getFullTokenResponseBody()), returnedBody)
 
-				assert.Equal(t, baseTestResponse{AccessToken: "test-access-token"}, response)
+				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
 		},
 		{
-			name:               "Success - Full Token response",
-			manifests:          []reply.ErrorManifest{},
-			accessToken:        "test-access-token",
-			refreshToken:       "test-refresh-token",
-			StatusCode:         200,
+			name:               "Success - Token response (single token)",
+			manifests:          getEmptyErrorManifest(),
+			passedTokenOne:     "test-token-1",
+			passedStatusCode:   200,
 			expectedStatusCode: http.StatusOK,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
-				response := baseTestResponse{}
+				returnedBody := w.Body.String()
 
-				err := unmarshalResponseBody(w, &response)
-				if err != nil {
-					t.Fatalf("cannot get response content: %v", err)
-				}
+				assert.Equal(t, stringWithNewLine(getSingleTokenResponseBody()), returnedBody)
 
-				assert.Equal(t, baseTestResponse{AccessToken: "test-access-token", RefreshToken: "test-refresh-token"}, response)
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Token response with Additional Headers",
+			manifests:        getEmptyErrorManifest(),
+			passedTokenOne:   "test-token-1",
+			passedTokenTwo:   "test-token-2",
+			passedStatusCode: 200,
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusOK,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getFullTokenResponseBody()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Token response with Meta-Information",
+			manifests:        getEmptyErrorManifest(),
+			passedTokenOne:   "test-token-1",
+			passedTokenTwo:   "test-token-2",
+			passedStatusCode: 200,
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: 200,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getFullTokenResponseWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Token response with Meta-Information & Additional Header",
+			manifests:        getEmptyErrorManifest(),
+			passedTokenOne:   "test-token-1",
+			passedTokenTwo:   "test-token-2",
+			passedStatusCode: 200,
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: 200,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getFullTokenResponseWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
 		},
 	}
@@ -1123,9 +1178,24 @@ func TestReplier_AideNewHTTPTokenResponse(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			replier := reply.NewReplier(test.manifests)
+			var replier *reply.Replier
 
-			replier.NewHTTPTokenResponse(w, test.StatusCode, test.accessToken, test.refreshToken)
+			switch {
+			case test.transferObject != nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject), reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject != nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject))
+			case test.transferObject == nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject == nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests)
+			}
+
+			if len(test.responseAttributes) > 0 {
+				replier.NewHTTPTokenResponse(w, test.passedStatusCode, test.passedTokenOne, test.passedTokenTwo, test.responseAttributes...)
+			} else {
+				replier.NewHTTPTokenResponse(w, test.passedStatusCode, test.passedTokenOne, test.passedTokenTwo)
+			}
 
 			assert.Equal(t, test.expectedStatusCode, w.Code)
 			test.assertResponse(w, t)

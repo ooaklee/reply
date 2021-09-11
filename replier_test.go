@@ -956,6 +956,185 @@ func TestReplier_NewHTTPMultiErrorResponseAide(t *testing.T) {
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
 		},
+		///////////////////////////////
+		/////// With Custom TOE ///////
+		{
+			name:               "Failure - Multi Error response (Using custom TOE)",
+			manifests:          getEmptyErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			expectedStatusCode: http.StatusInternalServerError,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseISEBodyUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Multi Error response (Using custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Multi Error response with Additional Headers (Using custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Multi Error response with Meta-Information (Using custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: 400,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsWithMetaBodyUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Multi Error response with Meta-Information & Additional Header (Using custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsWithMetaBodyUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		///////////////////////////////
+		///// With Custom TOE & TO ////
+		{
+			name:               "Failure - Multi Error response (Using custom TOE & TO)",
+			manifests:          getEmptyErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			expectedStatusCode: http.StatusInternalServerError,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseISEBodyUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Multi Error response (Using custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Multi Error response with Additional Headers (Using custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Multi Error response with Meta-Information (Using custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: 400,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsWithMetaBodyUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Multi Error response with Meta-Information & Additional Header (Using custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsWithMetaBodyUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
 	}
 
 	for _, test := range tests {

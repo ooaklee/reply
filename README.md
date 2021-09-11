@@ -61,12 +61,12 @@ Just remember, when creating an `Error Response` (Multi or Single), the passed m
 // See how we have to reply.ErrorManifests, on with mulitple
 // items and the other with just one.
 baseManifest := []reply.ErrorManifest{
-		{
-			"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound},
-			"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"},
-		},
-		{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
-	}
+    {
+      "example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound},
+      "example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"},
+    },
+    {"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
+  }
 
 // Create Replier to manage the responses going back to consumer(s)
 replier := reply.NewReplier(baseManifest)
@@ -175,11 +175,12 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
 
   // Pass error to Replier's method to return predefined response, else
-	// 500
-	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer: w,
-		Error:  exampleErr,
-	})
+  // 500
+  _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+    Writer: w,
+    Error:  exampleErr,
+  })
+}
 ```
 
 When the endpoint linked to the handler above is called, you should see the following JSON response.
@@ -214,24 +215,24 @@ Below you will find an example using `NewHTTPResponse`, however for simplicity, 
 func ExampleGetAllHandler(w http.ResponseWriter, r *http.Request) {
 
   // building sample user model
-	type user struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
+  type user struct {
+    ID   int    `json:"id"`
+    Name string `json:"name"`
+  }
 
-	// emulate users pulled from repository
-	mockedQueriedUsers := []user{
-		{ID: 1, Name: "John Doe"},
-		{ID: 2, Name: "Sam Smith"},
-	}
+  // emulate users pulled from repository
+  mockedQueriedUsers := []user{
+    {ID: 1, Name: "John Doe"},
+    {ID: 2, Name: "Sam Smith"},
+  }
 
-	// build and sent default formatted JSON response for consumption
-	// by client
-	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer:     w,
-		Data:       mockedUsers,
-		StatusCode: htttp.StatusOK,
-	})
+  // build and sent default formatted JSON response for consumption
+  // by client
+  _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+    Writer:     w,
+    Data:       mockedUsers,
+    StatusCode: htttp.StatusOK,
+  })
 }
 ```
 
@@ -414,16 +415,16 @@ If you wanted to send a `multi error response`, you could use the following, ass
 ```go
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-	// errors returned
-	exampleErrs := []errors{
-		errors.New("example-name-validation-error"),
-		errors.New("example-dob-validation-error"),
-	}
+  // errors returned
+  exampleErrs := []errors{
+    errors.New("example-name-validation-error"),
+    errors.New("example-dob-validation-error"),
+  }
 
-	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer: w,
-		Errors: exampleErrs,
-	})
+  _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+    Writer: w,
+    Errors: exampleErrs,
+  })
 }
 
 ```
@@ -448,16 +449,16 @@ You can also add additional `headers` and `meta data` to the response by using t
 
 ```go
 _ = replier.NewHTTPErrorResponse(w, exampleErr, reply.WithMeta(map[string]interface{}{
-		"example": "meta in error reponse",
-	}))
+    "example": "meta in error reponse",
+  }))
 ```
 
 **OR**
 
 ```go
 _ = replier.NewHTTPMultiErrorResponse(w, exampleErrs, reply.WithMeta(map[string]interface{}{
-		"example": "meta in error reponse",
-	}))
+    "example": "meta in error reponse",
+  }))
 ```
 
 #### JSON Representation
@@ -557,14 +558,14 @@ replier := reply.NewReplier([]reply.ErrorManifest{})
 
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-	// do something to get tokens
+  // do something to get tokens
 
-	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer:     w,
-		TokenOne:   "08a0a043-b532-4cea-8117-364739f2d994",
-		TokenTwo:   "08b29914-09a8-4a4a-8aa5-b1ffaff266e6",
-		StatusCode: 200,
-	})
+  _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+    Writer:     w,
+    TokenOne:   "08a0a043-b532-4cea-8117-364739f2d994",
+    TokenTwo:   "08b29914-09a8-4a4a-8aa5-b1ffaff266e6",
+    StatusCode: 200,
+  })
 }
 ```
 
@@ -632,17 +633,17 @@ replier := reply.NewReplier([]reply.ErrorManifest{})
 
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-	u := user{
-		id:   1,
-		name: "john doe",
-		dob:  "1/1/1970",
-	}
+  u := user{
+    id:   1,
+    name: "john doe",
+    dob:  "1/1/1970",
+  }
 
-	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer:     w,
-		Data:       u,
-		StatusCode: 201,
-	})
+  _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+    Writer:     w,
+    Data:       u,
+    StatusCode: 201,
+  })
 }
 ```
 
@@ -658,8 +659,8 @@ You can also add additional `headers` and `meta data` to the response by using t
 
 ```go
 _ = replier.NewHTTPDataResponse(w, 201, u, reply.WithMeta(map[string]interface{}{
-		"example": "meta in data reponse",
-	}))
+    "example": "meta in data reponse",
+  }))
 ```
 
 #### JSON Representation
@@ -706,10 +707,10 @@ replier := reply.NewReplier([]reply.ErrorManifest{})
 
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer:     w,
-		StatusCode: 200,
-	})
+  _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+    Writer:     w,
+    StatusCode: 200,
+  })
 }
 ```
 
@@ -724,8 +725,8 @@ You can also add additional `headers` and `meta data` to the response by using t
 
 ```go
 _ = replier.NewHTTPBlankResponse(w, 200, reply.WithMeta(map[string]interface{}{
-		"example": "meta in default reponse",
-	}))
+    "example": "meta in default reponse",
+  }))
 ```
 
 

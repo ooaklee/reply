@@ -52,9 +52,9 @@ type ErrorManifestItem struct {
 // manifest item (message & status code) which it returned in the response
 type ErrorManifest map[string]ErrorManifestItem
 
-// Error holds attributes often used to give additional
+// defaultReplyTransferObjectError holds attributes often used to give additional
 // context when unexpected behaviour occurs
-type Error struct {
+type defaultReplyTransferObjectError struct {
 
 	// Title a short summary of the problem
 	Title string `json:"title,omitempty"`
@@ -76,69 +76,69 @@ type Error struct {
 }
 
 // SetTitle adds title to error
-func (e *Error) SetTitle(title string) {
+func (e *defaultReplyTransferObjectError) SetTitle(title string) {
 	e.Title = title
 }
 
 // GetTitle returns error's title
-func (e *Error) GetTitle() string {
+func (e *defaultReplyTransferObjectError) GetTitle() string {
 	return e.Title
 }
 
 // SetDetail adds detail to error
-func (e *Error) SetDetail(detail string) {
+func (e *defaultReplyTransferObjectError) SetDetail(detail string) {
 	e.Detail = detail
 }
 
 // GetDetail return error's detail
-func (e *Error) GetDetail() string {
+func (e *defaultReplyTransferObjectError) GetDetail() string {
 	return e.Detail
 }
 
 // SetAbout adds about to error
-func (e *Error) SetAbout(about string) {
+func (e *defaultReplyTransferObjectError) SetAbout(about string) {
 	e.About = about
 }
 
 // GetAbout return error's about
-func (e *Error) GetAbout() string {
+func (e *defaultReplyTransferObjectError) GetAbout() string {
 	return e.About
 }
 
 // SetStatusCode converts and add http status code to error
-func (e *Error) SetStatusCode(status int) {
+func (e *defaultReplyTransferObjectError) SetStatusCode(status int) {
 	e.Status = strconv.Itoa(status)
 }
 
 // GetStatusCode returns error's HTTP status code
-func (e *Error) GetStatusCode() string {
+func (e *defaultReplyTransferObjectError) GetStatusCode() string {
 	return e.Status
 }
 
 // SetCode adds internal code to error
-func (e *Error) SetCode(code string) {
+func (e *defaultReplyTransferObjectError) SetCode(code string) {
 	e.Code = code
 }
 
 // GetCode returns error's internal code
-func (e *Error) GetCode() string {
+func (e *defaultReplyTransferObjectError) GetCode() string {
 	return e.Code
 }
 
 // SetMeta adds meta property to error
-func (e *Error) SetMeta(meta interface{}) {
+func (e *defaultReplyTransferObjectError) SetMeta(meta interface{}) {
 	e.Meta = meta
 }
 
 // GetMeta returns error's meta property
-func (e *Error) GetMeta() interface{} {
+func (e *defaultReplyTransferObjectError) GetMeta() interface{} {
 	return e.Meta
 }
 
 // RefreshTransferObject returns an empty instance of transfer object
 // error
-func (e *Error) RefreshTransferObject() TransferObjectError {
-	return &Error{}
+func (e *defaultReplyTransferObjectError) RefreshTransferObject() TransferObjectError {
+	return &defaultReplyTransferObjectError{}
 }
 
 // defaultReplyTransferObject handles structing response for client
@@ -148,10 +148,10 @@ type defaultReplyTransferObject struct {
 	Headers      map[string]string      `json:"-"`
 	StatusCode   int                    `json:"-"`
 	Errors       []TransferObjectError  `json:"errors,omitempty"`
-	Meta         map[string]interface{} `json:"meta,omitempty"`
 	Data         interface{}            `json:"data,omitempty"`
 	AccessToken  string                 `json:"access_token,omitempty"`
 	RefreshToken string                 `json:"refresh_token,omitempty"`
+	Meta         map[string]interface{} `json:"meta,omitempty"`
 }
 
 // SetHeaders adds headers to transfer object

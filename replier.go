@@ -110,7 +110,7 @@ type Replier struct {
 func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 
 	activeTransferObject := &defaultReplyTransferObject{}
-	activeTransferObjectError := &Error{}
+	activeTransferObjectError := &defaultReplyTransferObjectError{}
 
 	replier := Replier{
 		errorManifest:       mergeManifestCollections(manifests),

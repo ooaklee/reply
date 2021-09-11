@@ -39,7 +39,7 @@ type ErrorManifestItem struct {
 	// About holds the a URL that gives further insight into the error
 	About string
 
-	// Code holds the internal application error code, if appicable, thst is used to
+	// Code holds the internal application error code, if appicable, that is used to
 	// help debuggers better identify error
 	Code string
 

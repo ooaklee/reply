@@ -183,7 +183,7 @@ type user struct {
 // Example implementation of Error Manifest
 var baseManifest []reply.ErrorManifest = []reply.ErrorManifest{
 	{"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
-	{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest}},
+	{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
 	{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
 }
 

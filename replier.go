@@ -251,9 +251,17 @@ func (r *Replier) getErrorManifestItem(err error) ErrorManifestItem {
 		log.Printf("reply/error-response: failed to find error manifest item for %v", err)
 	}
 
-	// TODO: Set default error status Code on manifest item if unset
+	setDefaultStatusCode(&manifestItem)
 
 	return manifestItem
+}
+
+// setDefaultStatusCode sets the error manifest item's status code to default error
+// code value if it is not already set (non-zero)
+func setDefaultStatusCode(item *ErrorManifestItem) {
+	if item.StatusCode == 0 {
+		item.StatusCode = defaultErrorsStatusCode
+	}
 }
 
 // setUniversalAttributes sets the attributes that are common across all

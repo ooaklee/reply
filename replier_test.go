@@ -88,6 +88,8 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 		name               string
 		manifests          []reply.ErrorManifest
 		request            reply.NewResponseRequest
+		transferObject     reply.TransferObject
+		transferObjecError reply.TransferObjectError
 		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
 		expectedStatusCode int
 	}{
@@ -634,7 +636,18 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			replier := reply.NewReplier(test.manifests)
+			var replier *reply.Replier
+
+			switch {
+			case test.transferObject != nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject), reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject != nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject))
+			case test.transferObject == nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject == nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests)
+			}
 
 			test.request.Writer = w
 

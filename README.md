@@ -232,6 +232,7 @@ func ExampleGetAllHandler(w http.ResponseWriter, r *http.Request) {
 		Data:       mockedUsers,
 		StatusCode: htttp.StatusOK,
 	})
+}
 ```
 
 When the endpoint linked to the handler above is called, you should see the following JSON response.
@@ -306,7 +307,7 @@ replier := reply.NewReplier([]reply.ErrorManifest{}, reply.WithTransferObject(cu
 
 > For a live example on how you can use a custom `transfer object`, please look at the [`simple API examples` in this repo](./examples/example_simple_api.go). You are looking out for the `fooReplyTransferObject` implementation.
 
-### Eroor Transfer Object (`TransferObjectError`)
+### Error Transfer Object (`TransferObjectError`)
 
 The `Transfer Object` used for the `individual error response object` **must** satisfy the following interface:
 
@@ -413,7 +414,7 @@ If you wanted to send a `multi error response`, you could use the following, ass
 ```go
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-  // errors returned
+	// errors returned
 	exampleErrs := []errors{
 		errors.New("example-name-validation-error"),
 		errors.New("example-dob-validation-error"),
@@ -436,7 +437,7 @@ For readability and simplicity, you can use the `HTTP error response aides`. You
 _ = replier.NewHTTPErrorResponse(w, exampleErr)
 ```
 
-- `Multiple Errors`
+- `Multi Error`
 
 ```go
 // inside of the request handler
@@ -476,7 +477,7 @@ _ = replier.NewHTTPMultiErrorResponse(w, exampleErrs, reply.WithMeta(map[string]
 }
 ```
 
-- `Multiple Errors`
+- `Multi Error`
 
 ```json
 {
@@ -517,7 +518,7 @@ When a `meta` is also declared, the response will have the following format. It 
 }
 ```
 
-- `Multiple Errors`
+- `Multi Error`
 
 ```json
 {
@@ -556,7 +557,7 @@ replier := reply.NewReplier([]reply.ErrorManifest{})
 
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-  // do something to get tokens
+	// do something to get tokens
 
 	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer:     w,
@@ -631,7 +632,7 @@ replier := reply.NewReplier([]reply.ErrorManifest{})
 
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-  u := user{
+	u := user{
 		id:   1,
 		name: "john doe",
 		dob:  "1/1/1970",
@@ -705,7 +706,7 @@ replier := reply.NewReplier([]reply.ErrorManifest{})
 
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-  _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer:     w,
 		StatusCode: 200,
 	})

@@ -46,11 +46,11 @@ func (t *fooReplyTransferObject) SetWriter(writer http.ResponseWriter) {
 	t.HTTPWriter = writer
 }
 
-func (t *fooReplyTransferObject) SetAccessToken(token string) {
+func (t *fooReplyTransferObject) SetTokenOne(token string) {
 	t.Bar.AccessToken = token
 }
 
-func (t *fooReplyTransferObject) SetRefreshToken(token string) {
+func (t *fooReplyTransferObject) SetTokenTwo(token string) {
 	t.Bar.RefreshToken = token
 }
 
@@ -269,9 +269,9 @@ func simpleTokensAPIHandler(w http.ResponseWriter, r *http.Request) {
 	mockedRefreshToken := "0e95c426-d373-41a5-bfe1-08db322527bd"
 
 	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
-		Writer:       w,
-		AccessToken:  mockedAccessToken,
-		RefreshToken: mockedRefreshToken,
+		Writer:   w,
+		TokenOne: mockedAccessToken,
+		TokenTwo: mockedRefreshToken,
 	})
 }
 

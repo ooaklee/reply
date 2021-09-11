@@ -157,8 +157,8 @@ type TransferObject interface {
 	SetHeaders(headers map[string]string)
 	SetStatusCode(code int)
 	SetMeta(meta map[string]interface{})
-	SetAccessToken(token string)
-	SetRefreshToken(token string)
+	SetTokenOne(token string)
+	SetTokenTwo(token string)
 	GetWriter() http.ResponseWriter
 	GetStatusCode() int
 	SetWriter(writer http.ResponseWriter)

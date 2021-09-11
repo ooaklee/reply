@@ -35,8 +35,8 @@ type TransferObject interface {
 	SetHeaders(headers map[string]string)
 	SetStatusCode(code int)
 	SetMeta(meta map[string]interface{})
-	SetAccessToken(token string)
-	SetRefreshToken(token string)
+	SetTokenOne(token string)
+	SetTokenTwo(token string)
 	GetWriter() http.ResponseWriter
 	GetStatusCode() int
 	SetWriter(writer http.ResponseWriter)
@@ -76,16 +76,16 @@ func WithTransferObjectError(replacementTransferObjectError TransferObjectError)
 
 // NewResponseRequest holds attributes for response
 type NewResponseRequest struct {
-	Writer       http.ResponseWriter
-	Data         interface{}
-	Meta         map[string]interface{}
-	Headers      map[string]string
-	StatusCode   int
-	Message      string
-	Error        error
-	Errors       []error
-	AccessToken  string
-	RefreshToken string
+	Writer     http.ResponseWriter
+	Data       interface{}
+	Meta       map[string]interface{}
+	Headers    map[string]string
+	StatusCode int
+	Message    string
+	Error      error
+	Errors     []error
+	TokenOne   string
+	TokenTwo   string
 }
 
 // Replier handles managing responses
@@ -163,8 +163,8 @@ func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
 	}
 
 	// Manage response for token
-	if response.AccessToken != "" || response.RefreshToken != "" {
-		return r.generateTokenResponse(response.AccessToken, response.RefreshToken)
+	if response.TokenOne != "" || response.TokenTwo != "" {
+		return r.generateTokenResponse(response.TokenOne, response.TokenTwo)
 	}
 
 	// Manage response for data
@@ -190,9 +190,9 @@ func (r *Replier) generateDataResponse(data interface{}) error {
 }
 
 // generateTokenResponse generates token response on passed tokens information
-func (r *Replier) generateTokenResponse(accessToken, refreshToken string) error {
-	r.transferObject.SetAccessToken(accessToken)
-	r.transferObject.SetRefreshToken(refreshToken)
+func (r *Replier) generateTokenResponse(tokenOne, tokenTwo string) error {
+	r.transferObject.SetTokenOne(tokenOne)
+	r.transferObject.SetTokenTwo(tokenTwo)
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
@@ -505,17 +505,17 @@ func (r *Replier) NewHTTPBlankResponse(w http.ResponseWriter, statusCode int, at
 //
 // NOTE - At least one of the tokens must be specified or an error will
 // be returned
-func (r *Replier) NewHTTPTokenResponse(w http.ResponseWriter, statusCode int, accessToken, refreshToken string, attributes ...ResponseAttributes) error {
+func (r *Replier) NewHTTPTokenResponse(w http.ResponseWriter, statusCode int, tokenOne, tokenTwo string, attributes ...ResponseAttributes) error {
 
-	if isEmpty(accessToken) && isEmpty(refreshToken) {
+	if isEmpty(tokenOne) && isEmpty(tokenTwo) {
 		return errors.New("reply/http-token-aide: failed at least one token must be returned")
 	}
 
 	request := NewResponseRequest{
-		Writer:       w,
-		StatusCode:   statusCode,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		Writer:     w,
+		StatusCode: statusCode,
+		TokenOne:   tokenOne,
+		TokenTwo:   tokenTwo,
 	}
 
 	// Add attributes to response request

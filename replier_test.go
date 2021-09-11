@@ -104,10 +104,10 @@ func TestReplier_NewHTTPResponseForTokens(t *testing.T) {
 			replier := reply.NewReplier(test.manifests)
 
 			replier.NewHTTPResponse(&reply.NewResponseRequest{
-				Writer:       w,
-				StatusCode:   test.StatusCode,
-				AccessToken:  test.accessToken,
-				RefreshToken: test.refreshToken,
+				Writer:     w,
+				StatusCode: test.StatusCode,
+				TokenOne:   test.accessToken,
+				TokenTwo:   test.refreshToken,
 			})
 
 			assert.Equal(t, test.expectedStatusCode, w.Code)

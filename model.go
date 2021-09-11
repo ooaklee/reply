@@ -144,14 +144,14 @@ func (e *defaultReplyTransferObjectError) RefreshTransferObject() TransferObject
 // defaultReplyTransferObject handles structing response for client
 // consumption
 type defaultReplyTransferObject struct {
-	HTTPWriter   http.ResponseWriter    `json:"-"`
-	Headers      map[string]string      `json:"-"`
-	StatusCode   int                    `json:"-"`
-	Errors       []TransferObjectError  `json:"errors,omitempty"`
-	Data         interface{}            `json:"data,omitempty"`
-	AccessToken  string                 `json:"access_token,omitempty"`
-	RefreshToken string                 `json:"refresh_token,omitempty"`
-	Meta         map[string]interface{} `json:"meta,omitempty"`
+	HTTPWriter http.ResponseWriter    `json:"-"`
+	Headers    map[string]string      `json:"-"`
+	StatusCode int                    `json:"-"`
+	Errors     []TransferObjectError  `json:"errors,omitempty"`
+	Data       interface{}            `json:"data,omitempty"`
+	TokenOne   string                 `json:"access_token,omitempty"`
+	TokenTwo   string                 `json:"refresh_token,omitempty"`
+	Meta       map[string]interface{} `json:"meta,omitempty"`
 }
 
 // SetHeaders adds headers to transfer object
@@ -176,14 +176,14 @@ func (t *defaultReplyTransferObject) SetWriter(writer http.ResponseWriter) {
 	t.HTTPWriter = writer
 }
 
-// SetAccessToken adds token to access token property on transfer object
-func (t *defaultReplyTransferObject) SetAccessToken(token string) {
-	t.AccessToken = token
+// SetTokenOne sets token value to token one on transfer object
+func (t *defaultReplyTransferObject) SetTokenOne(token string) {
+	t.TokenOne = token
 }
 
-// SetRefreshToken adds token to refresh token property on transfer object
-func (t *defaultReplyTransferObject) SetRefreshToken(token string) {
-	t.RefreshToken = token
+// SetTokenTwo sets token value to token two on transfer object
+func (t *defaultReplyTransferObject) SetTokenTwo(token string) {
+	t.TokenTwo = token
 }
 
 // GetWriter returns the writer assigned with the transfer object

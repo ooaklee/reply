@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/ooaklee/reply"
@@ -645,6 +646,185 @@ func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 				returnedBody := w.Body.String()
 
 				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		///////////////////////////////
+		/////// With Custom TOE ///////
+		{
+			name:               "Failure - Error response (Using custom TOE)",
+			manifests:          getEmptyErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			expectedStatusCode: http.StatusInternalServerError,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseISEBodyUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response (Using custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response with Additional Headers (Using custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response with Meta-Information (Using custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: 404,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBodyUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response with Meta-Information & Additional Header (Using custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBodyUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		///////////////////////////////
+		///// With Custom TOE & TO ////
+		{
+			name:               "Failure - Error response (Using custom TOE & TO)",
+			manifests:          getEmptyErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			expectedStatusCode: http.StatusInternalServerError,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseISEBodyUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response (Using custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response with Additional Headers (Using custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response with Meta-Information (Using custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: 404,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBodyUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response with Meta-Information & Additional Header (Using custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBodyUsingCustomTOEAndTO()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -1293,6 +1473,72 @@ func getMultiErrorResponseMultiErrorsWithMetaBody() string {
 	return `{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}],"meta":{"example":"meta in response"}}`
 }
 
+////////////////////////
+//// For custom TOE ////
+
+// getErrorResponseBodyUsingCustomTOE returns internal server error response body
+// based on custom Transfer Object Error
+func getErrorResponseISEBodyUsingCustomTOE() string {
+	return `{"errors":[{"title":"Internal Server Error","more":{"status":"500"}}]}`
+}
+
+// getErrorResponseForExampleErrorOneUsingCustomTOE returns test error response body for getErrorResponseForExampleErrorOne function
+// based on custom Transfer Object Error
+func getErrorResponseForExampleErrorOneUsingCustomTOE() string {
+	return `{"errors":[{"title":"Resource Not Found","more":{"status":"404"}}]}`
+}
+
+// getMultiErrorResponseMultiErrorsUsingCustomTOE returns test error response body for getMultiErrors function
+// based on custom Transfer Object Error
+func getMultiErrorResponseMultiErrorsUsingCustomTOE() string {
+	return `{"errors":[{"title":"Validation Error","message":"Check your DoB, and try again.","more":{"status":"400","code":"100YT"}},{"title":"Validation Error","message":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","more":{"status":"400","code":"1011"}}]}`
+}
+
+// getErrorResponseForExampleErrorOneWithMetaBodyUsingCustomTOE returns test error response body for getErrorResponseForExampleErrorOne function with meta-data
+// based on custom Transfer Object Error
+func getErrorResponseForExampleErrorOneWithMetaBodyUsingCustomTOE() string {
+	return `{"errors":[{"title":"Resource Not Found","more":{"status":"404"}}],"meta":{"example":"meta in response"}}`
+}
+
+// getMultiErrorResponseMultiErrorsWithMetaBodyUsingCustomTOE returns test error response body for getMultiErrors function with meta-data
+// based on custom Transfer Object Error
+func getMultiErrorResponseMultiErrorsWithMetaBodyUsingCustomTOE() string {
+	return `{"errors":[{"title":"Validation Error","message":"Check your DoB, and try again.","more":{"status":"400","code":"100YT"}},{"title":"Validation Error","message":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","more":{"status":"400","code":"1011"}}],"meta":{"example":"meta in response"}}`
+}
+
+////////////////////////
+// For custom TOE & TO /
+
+// getErrorResponseBodyUsingCustomTOEAndTO returns internal server error response body
+// based on custom Transfer Object Error & Transfer Object
+func getErrorResponseISEBodyUsingCustomTOEAndTO() string {
+	return `{"bar":{"errors":[{"title":"Internal Server Error","more":{"status":"500"}}]}}`
+}
+
+// getErrorResponseForExampleErrorOneUsingCustomTOEAndTO returns test error response body for getErrorResponseForExampleErrorOne function
+// based on custom Transfer Object Error & Transfer Object
+func getErrorResponseForExampleErrorOneUsingCustomTOEAndTO() string {
+	return `{"bar":{"errors":[{"title":"Resource Not Found","more":{"status":"404"}}]}}`
+}
+
+// getMultiErrorResponseMultiErrorsUsingCustomTOEAndTO returns test error response body for getMultiErrors function
+// based on custom Transfer Object Error & Transfer Object
+func getMultiErrorResponseMultiErrorsUsingCustomTOEAndTO() string {
+	return `{"bar":{"errors":[{"title":"Validation Error","message":"Check your DoB, and try again.","more":{"status":"400","code":"100YT"}},{"title":"Validation Error","message":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","more":{"status":"400","code":"1011"}}]}}`
+}
+
+// getErrorResponseForExampleErrorOneWithMetaBodyUsingCustomTOEAndTO returns test error response body for getErrorResponseForExampleErrorOne function with meta-data
+// based on custom Transfer Object Error & Transfer Object
+func getErrorResponseForExampleErrorOneWithMetaBodyUsingCustomTOEAndTO() string {
+	return `{"bar":{"errors":[{"title":"Resource Not Found","more":{"status":"404"}}],"meta":{"example":"meta in response"}}}`
+}
+
+// getMultiErrorResponseMultiErrorsWithMetaBodyUsingCustomTOEAndTO returns test error response body for getMultiErrors function with meta-data
+// based on custom Transfer Object Error & Transfer Object
+func getMultiErrorResponseMultiErrorsWithMetaBodyUsingCustomTOEAndTO() string {
+	return `{"bar":{"errors":[{"title":"Validation Error","message":"Check your DoB, and try again.","more":{"status":"400","code":"100YT"}},{"title":"Validation Error","message":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","more":{"status":"400","code":"1011"}}],"meta":{"example":"meta in response"}}}`
+}
+
 // getTestUser returns user used by tests
 func getTestUser() user {
 	return user{
@@ -1312,3 +1558,172 @@ func getReplyFormattedMeta() map[string]interface{} {
 		"example": "meta in response",
 	}
 }
+
+/////////////////////////////////////////////////
+/////// Custom Transition Object Example ////////
+// This is an example of how you can create a
+// custom response structure based on your
+// requirements.
+//
+// Sourced from `examples/example_simple_api.go`
+type fooReplyTransferObject struct {
+	HTTPWriter http.ResponseWriter `json:"-"`
+	Headers    map[string]string   `json:"-"`
+	StatusCode int                 `json:"-"`
+	Bar        barEmbeddedExample  `json:"bar,omitempty"`
+}
+
+type barEmbeddedExample struct {
+	Errors       []reply.TransferObjectError `json:"errors,omitempty"`
+	Meta         map[string]interface{}      `json:"meta,omitempty"`
+	Data         interface{}                 `json:"data,omitempty"`
+	AccessToken  string                      `json:"access_token,omitempty"`
+	RefreshToken string                      `json:"refresh_token,omitempty"`
+}
+
+func (t *fooReplyTransferObject) SetHeaders(headers map[string]string) {
+	t.Headers = headers
+}
+
+func (t *fooReplyTransferObject) SetStatusCode(code int) {
+	t.StatusCode = code
+}
+
+func (t *fooReplyTransferObject) SetMeta(meta map[string]interface{}) {
+	t.Bar.Meta = meta
+}
+
+func (t *fooReplyTransferObject) SetWriter(writer http.ResponseWriter) {
+	t.HTTPWriter = writer
+}
+
+func (t *fooReplyTransferObject) SetTokenOne(token string) {
+	t.Bar.AccessToken = token
+}
+
+func (t *fooReplyTransferObject) SetTokenTwo(token string) {
+	t.Bar.RefreshToken = token
+}
+
+func (t *fooReplyTransferObject) GetWriter() http.ResponseWriter {
+	return t.HTTPWriter
+}
+
+func (t *fooReplyTransferObject) GetStatusCode() int {
+	return t.StatusCode
+}
+
+func (t *fooReplyTransferObject) SetData(data interface{}) {
+	t.Bar.Data = data
+}
+
+func (t *fooReplyTransferObject) RefreshTransferObject() reply.TransferObject {
+	return &fooReplyTransferObject{}
+}
+
+func (t *fooReplyTransferObject) SetErrors(transferObjectErrors []reply.TransferObjectError) {
+	t.Bar.Errors = transferObjectErrors
+}
+
+////////////////////
+
+/////////////////////////////////////////////////
+//// Custom Transition Object Error Example /////
+// This is an example of how you can create a
+// custom response structure for errrors retutned
+// in the response
+//
+// Sourced from `examples/example_simple_api.go`
+
+type barError struct {
+
+	// Title a short summary of the problem
+	Title string `json:"title,omitempty"`
+
+	// Message a description of the error
+	Message string `json:"message,omitempty"`
+
+	// About holds the link that gives further insight into the error
+	About string `json:"about,omitempty"`
+
+	// More randomd top level attribute to make error
+	// difference
+	More struct {
+		// Status the HTTP status associated with error
+		Status string `json:"status,omitempty"`
+
+		// Code internal error code used to reference error
+		Code string `json:"code,omitempty"`
+
+		// Meta contains additional meta-information about the error
+		Meta interface{} `json:"meta,omitempty"`
+	} `json:"more,omitempty"`
+}
+
+// SetTitle adds title to error
+func (b *barError) SetTitle(title string) {
+	b.Title = title
+}
+
+// GetTitle returns error's title
+func (b *barError) GetTitle() string {
+	return b.Title
+}
+
+// SetDetail adds detail to error
+func (b *barError) SetDetail(detail string) {
+	b.Message = detail
+}
+
+// GetDetail return error's detail
+func (b *barError) GetDetail() string {
+	return b.Message
+}
+
+// SetAbout adds about to error
+func (b *barError) SetAbout(about string) {
+	b.About = about
+}
+
+// GetAbout return error's about
+func (b *barError) GetAbout() string {
+	return b.About
+}
+
+// SetStatusCode converts and add http status code to error
+func (b *barError) SetStatusCode(status int) {
+	b.More.Status = strconv.Itoa(status)
+}
+
+// GetStatusCode returns error's HTTP status code
+func (b *barError) GetStatusCode() string {
+	return b.More.Status
+}
+
+// SetCode adds internal code to error
+func (b *barError) SetCode(code string) {
+	b.More.Code = code
+}
+
+// GetCode returns error's internal code
+func (b *barError) GetCode() string {
+	return b.More.Code
+}
+
+// SetMeta adds meta property to error
+func (b *barError) SetMeta(meta interface{}) {
+	b.More.Meta = meta
+}
+
+// GetMeta returns error's meta property
+func (b *barError) GetMeta() interface{} {
+	return b.More.Meta
+}
+
+// RefreshTransferObject returns an empty instance of transfer object
+// error
+func (b *barError) RefreshTransferObject() reply.TransferObjectError {
+	return &barError{}
+}
+
+////////////////////

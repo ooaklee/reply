@@ -380,8 +380,8 @@ func handleRequest() {
 	http.HandleFunc("/users/4", simpleUsersAPINoManifestEntryHandler)
 	http.HandleFunc("/tokens/refresh", simpleTokensAPIHandler)
 	http.HandleFunc("/defaults/1", simpleAPIDefaultResponseHandler)
-	http.HandleFunc("/custom/users/3", simpleUsersAPINotFoundCustomReplierHandler)
-	http.HandleFunc("/custom/users/404", simpleUsersAPINotFoundWithCustomTransitionObjsHandler)
+	http.HandleFunc("/users/3/custom", simpleUsersAPINotFoundCustomReplierHandler)
+	http.HandleFunc("/users/404/custom", simpleUsersAPINotFoundWithCustomTransitionObjsHandler)
 
 	http.HandleFunc("/aides/errors", simpleUsersAPIMultiErrorUsingAideHandler)
 	http.HandleFunc("/aides/errors/custom", simpleUsersAPIMultiErrorUsingAideWithCustomErrorHandler)
@@ -390,7 +390,7 @@ func handleRequest() {
 	http.HandleFunc("/aides/users/4", simpleUsersAPINoManifestEntryUsingAideHandler)
 	http.HandleFunc("/aides/tokens/refresh", simpleTokensAPIUsingAideHandler)
 	http.HandleFunc("/aides/defaults/1", simpleAPIDefaultResponseUsingAideHandler)
-	http.HandleFunc("/aides/custom/users/3", simpleUsersAPINotFoundCustomReplierUsingAideHandler)
+	http.HandleFunc("/aides/users/3/custom", simpleUsersAPINotFoundCustomReplierUsingAideHandler)
 
 	log.Printf("Serving simple API on port %s...", port)
 	log.Fatal(http.ListenAndServe(port, nil))

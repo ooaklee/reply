@@ -1,5 +1,18 @@
 # Reply Release Notes
 
+## [v1.0.0](https://github.com/ooaklee/reply/releases/tag/v1.0.0)
+2021-09-11
+
+* Update top-level response members from `meta`, `status` and `data` **->** `meta`, `errors` and `data`
+* Updated `Manifest Error Item` fields
+* Updated logic & added new aide `NewHTTPMultiErrorResponse` to support multiple error response objects in response
+* Refactored code
+* Added logic to support users passing custom *error transfer objects* (`TransferObjectError`), `reply.WithTransferObjectError`
+  * Added `RefreshTransferObject` method call to `TransferObjectError`
+* Updated Token attributes & methods on base `Transfer Object` to have a generic name to cover cases where API uses different token identifiers
+  * `AccessToken` -> `TokenOne` & `RefreshToken` -> `TokenTwo`
+* Added logic to set `StatusCode` if not set already. Defaults to `400`.
+  
 ## [v1.0.0-alpha.3](https://github.com/ooaklee/reply/releases/tag/v1.0.0-alpha.3)
 2021-09-11
 

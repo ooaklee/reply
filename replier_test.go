@@ -5,10 +5,8 @@
 package reply_test
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,149 +15,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type baseTestResponse struct {
-	AccessToken  string      `json:"access_token,omitempty"`
-	RefreshToken string      `json:"refresh_token,omitempty"`
-	Data         interface{} `json:"data,omitempty"`
-}
-
-type baseStatusMessageResponse struct {
-	Status struct {
-		Message string `json:"message,omitempty"`
-	} `json:"status,omitempty"`
-}
-
+// user mock data object to return
 type user struct {
 	ID   string `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
-}
-
-// stringWithNewLine appends new line to passed string
-func stringWithNewLine(s string) string {
-	return fmt.Sprintf("%s\n", s)
-}
-
-// getDefaultHeader returns default headers
-func getDefaultHeader() http.Header {
-	return http.Header{"Content-Type": []string{"application/json"}}
-}
-
-// getAdditionalHeaders returns default header with addition correlation ID header
-func getAdditionalHeaders() http.Header {
-	return http.Header{"Content-Type": []string{"application/json"}, "Correlation-Id": []string{"some-id"}}
-}
-
-// getEmptyErrorManifest returns an empty manifest
-func getEmptyErrorManifest() []reply.ErrorManifest {
-	return []reply.ErrorManifest{}
-}
-
-// getDefaultErrorManifest returns the default manifest
-func getDefaultErrorManifest() []reply.ErrorManifest {
-	return []reply.ErrorManifest{
-		{"example-404-error": reply.ErrorManifestItem{Title: "Resource Not Found", StatusCode: http.StatusNotFound}},
-		{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
-		{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
-	}
-}
-
-// getMultiErrors returns example errors
-func getMultiErrors() []error {
-	return []error{
-		errors.New("example-dob-validation-error"),
-		errors.New("example-name-validation-error"),
-	}
-}
-
-// getMultiErrorsWithMissingErr returns example errors with one error
-// that does not exist in manifest
-func getMultiErrorsWithMissingErr() []error {
-	return append(getMultiErrors(), errors.New("example-missing-error"))
-}
-
-// getExampleErrorOne returns example error (1)
-func getExampleErrorOne() error {
-	return errors.New("example-404-error")
-}
-
-// getBlankResponseBody returns default blank response body
-func getBlankResponseBody() string {
-	return `{"data":"{}"}`
-}
-
-// getBlankResponseWithMetaBody returns default blank response body with meta-data
-func getBlankResponseWithMetaBody() string {
-	return `{"data":"{}","meta":{"example":"meta in response"}}`
-}
-
-// getDataResponseBody returns test data response body
-func getDataResponseBody() string {
-	return `{"data":{"id":"some-id","name":"john doe"}}`
-}
-
-// getDataResponseWithMetaBody returns test data response body with meta-data
-func getDataResponseWithMetaBody() string {
-	return `{"data":{"id":"some-id","name":"john doe"},"meta":{"example":"meta in response"}}`
-}
-
-// getFullTokenResponseBody returns test full token response body
-func getFullTokenResponseBody() string {
-	return `{"access_token":"test-token-1","refresh_token":"test-token-2"}`
-}
-
-// getSingleTokenResponseBody returns test single token response body
-func getSingleTokenResponseBody() string {
-	return `{"access_token":"test-token-1"}`
-}
-
-// getFullTokenResponseWithMetaBody returns test  full token response body with meta-data
-func getFullTokenResponseWithMetaBody() string {
-	return `{"access_token":"test-token-1","refresh_token":"test-token-2","meta":{"example":"meta in response"}}`
-}
-
-// getErrorResponseBody returns internal server error response body
-func getErrorResponseISEBody() string {
-	return `{"errors":[{"title":"Internal Server Error","status":"500"}]}`
-}
-
-// getErrorResponseForExampleErrorOne returns test error response body for getErrorResponseForExampleErrorOne function
-func getErrorResponseForExampleErrorOne() string {
-	return `{"errors":[{"title":"Resource Not Found","status":"404"}]}`
-}
-
-// getMultiErrorResponseMultiErrors returns test error response body for getMultiErrors function
-func getMultiErrorResponseMultiErrors() string {
-	return `{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}]}`
-}
-
-// getErrorResponseForExampleErrorOneWithMetaBody returns test error response body for getErrorResponseForExampleErrorOne function with meta-data
-func getErrorResponseForExampleErrorOneWithMetaBody() string {
-	return `{"errors":[{"title":"Resource Not Found","status":"404"}],"meta":{"example":"meta in response"}}`
-}
-
-// getMultiErrorResponseMultiErrorsWithMetaBody returns test error response body for getMultiErrors function with meta-data
-func getMultiErrorResponseMultiErrorsWithMetaBody() string {
-	return `{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}],"meta":{"example":"meta in response"}}`
-}
-
-// getTestUser returns user used by tests
-func getTestUser() user {
-	return user{
-		ID:   "some-id",
-		Name: "john doe",
-	}
-}
-
-// getReplyFormattedHeader returns header in expected format for reply library
-func getReplyFormattedHeader() map[string]string {
-	return map[string]string{"correlation-id": "some-id"}
-}
-
-// getReplyFormattedMeta returns meta-data in expected format for reply library
-func getReplyFormattedMeta() map[string]interface{} {
-	return map[string]interface{}{
-		"example": "meta in response",
-	}
 }
 
 func TestReplier_NewHTTPResponse(t *testing.T) {
@@ -1203,30 +1062,95 @@ func TestReplier_NewHTTPTokenResponseAide(t *testing.T) {
 	}
 }
 
-func TestReplier_AideNewHTTPBlankResponse(t *testing.T) {
+func TestReplier_NewHTTPBlankResponseAide(t *testing.T) {
 
 	tests := []struct {
 		name               string
 		manifests          []reply.ErrorManifest
-		StatusCode         int
+		passedStatusCode   int
+		responseAttributes []reply.ResponseAttributes
+		transferObject     reply.TransferObject
+		transferObjecError reply.TransferObjectError
 		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
 		expectedStatusCode int
 	}{
 		{
-			name:               "Success",
-			manifests:          []reply.ErrorManifest{},
-			StatusCode:         201,
-			expectedStatusCode: http.StatusCreated,
+			name:               "Success - Blank response (default)",
+			manifests:          getEmptyErrorManifest(),
+			expectedStatusCode: http.StatusOK,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
-				response := baseTestResponse{}
+				returnedBody := w.Body.String()
 
-				err := unmarshalResponseBody(w, &response)
-				if err != nil {
-					t.Fatalf("cannot get response content: %v", err)
-				}
+				assert.Equal(t, stringWithNewLine(getBlankResponseBody()), returnedBody)
 
-				assert.Equal(t, baseTestResponse{Data: "{}"}, response)
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Blank response with different status code",
+			manifests:          getEmptyErrorManifest(),
+			passedStatusCode:   302,
+			expectedStatusCode: 302,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getBlankResponseBody()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Blank response with Additional Headers",
+			manifests:        getEmptyErrorManifest(),
+			passedStatusCode: 302,
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: 302,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getBlankResponseBody()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Blank response with Meta-Information",
+			manifests:        getEmptyErrorManifest(),
+			passedStatusCode: 302,
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: 302,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getBlankResponseWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Blank response with Meta-Information & Additional Header",
+			manifests:        getEmptyErrorManifest(),
+			passedStatusCode: 302,
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: 302,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getBlankResponseWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
 		},
 	}
@@ -1236,9 +1160,24 @@ func TestReplier_AideNewHTTPBlankResponse(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			replier := reply.NewReplier(test.manifests)
+			var replier *reply.Replier
 
-			replier.NewHTTPBlankResponse(w, test.StatusCode)
+			switch {
+			case test.transferObject != nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject), reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject != nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject))
+			case test.transferObject == nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject == nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests)
+			}
+
+			if len(test.responseAttributes) > 0 {
+				replier.NewHTTPBlankResponse(w, test.passedStatusCode, test.responseAttributes...)
+			} else {
+				replier.NewHTTPBlankResponse(w, test.passedStatusCode)
+			}
 
 			assert.Equal(t, test.expectedStatusCode, w.Code)
 			test.assertResponse(w, t)
@@ -1246,17 +1185,130 @@ func TestReplier_AideNewHTTPBlankResponse(t *testing.T) {
 	}
 }
 
-// unmarshalResponseBody handles unmarshalling recorder's response to specified
-// response body
-func unmarshalResponseBody(w *httptest.ResponseRecorder, responseBody interface{}) error {
-	content, err := ioutil.ReadAll(w.Result().Body)
-	if err != nil {
-		return err
-	}
+// stringWithNewLine appends new line to passed string
+func stringWithNewLine(s string) string {
+	return fmt.Sprintf("%s\n", s)
+}
 
-	if err = json.Unmarshal(content, responseBody); err != nil {
-		return err
-	}
+// getDefaultHeader returns default headers
+func getDefaultHeader() http.Header {
+	return http.Header{"Content-Type": []string{"application/json"}}
+}
 
-	return nil
+// getAdditionalHeaders returns default header with addition correlation ID header
+func getAdditionalHeaders() http.Header {
+	return http.Header{"Content-Type": []string{"application/json"}, "Correlation-Id": []string{"some-id"}}
+}
+
+// getEmptyErrorManifest returns an empty manifest
+func getEmptyErrorManifest() []reply.ErrorManifest {
+	return []reply.ErrorManifest{}
+}
+
+// getDefaultErrorManifest returns the default manifest
+func getDefaultErrorManifest() []reply.ErrorManifest {
+	return []reply.ErrorManifest{
+		{"example-404-error": reply.ErrorManifestItem{Title: "Resource Not Found", StatusCode: http.StatusNotFound}},
+		{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
+		{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
+	}
+}
+
+// getMultiErrors returns example errors
+func getMultiErrors() []error {
+	return []error{
+		errors.New("example-dob-validation-error"),
+		errors.New("example-name-validation-error"),
+	}
+}
+
+// getMultiErrorsWithMissingErr returns example errors with one error
+// that does not exist in manifest
+func getMultiErrorsWithMissingErr() []error {
+	return append(getMultiErrors(), errors.New("example-missing-error"))
+}
+
+// getExampleErrorOne returns example error (1)
+func getExampleErrorOne() error {
+	return errors.New("example-404-error")
+}
+
+// getBlankResponseBody returns default blank response body
+func getBlankResponseBody() string {
+	return `{"data":"{}"}`
+}
+
+// getBlankResponseWithMetaBody returns default blank response body with meta-data
+func getBlankResponseWithMetaBody() string {
+	return `{"data":"{}","meta":{"example":"meta in response"}}`
+}
+
+// getDataResponseBody returns test data response body
+func getDataResponseBody() string {
+	return `{"data":{"id":"some-id","name":"john doe"}}`
+}
+
+// getDataResponseWithMetaBody returns test data response body with meta-data
+func getDataResponseWithMetaBody() string {
+	return `{"data":{"id":"some-id","name":"john doe"},"meta":{"example":"meta in response"}}`
+}
+
+// getFullTokenResponseBody returns test full token response body
+func getFullTokenResponseBody() string {
+	return `{"access_token":"test-token-1","refresh_token":"test-token-2"}`
+}
+
+// getSingleTokenResponseBody returns test single token response body
+func getSingleTokenResponseBody() string {
+	return `{"access_token":"test-token-1"}`
+}
+
+// getFullTokenResponseWithMetaBody returns test  full token response body with meta-data
+func getFullTokenResponseWithMetaBody() string {
+	return `{"access_token":"test-token-1","refresh_token":"test-token-2","meta":{"example":"meta in response"}}`
+}
+
+// getErrorResponseBody returns internal server error response body
+func getErrorResponseISEBody() string {
+	return `{"errors":[{"title":"Internal Server Error","status":"500"}]}`
+}
+
+// getErrorResponseForExampleErrorOne returns test error response body for getErrorResponseForExampleErrorOne function
+func getErrorResponseForExampleErrorOne() string {
+	return `{"errors":[{"title":"Resource Not Found","status":"404"}]}`
+}
+
+// getMultiErrorResponseMultiErrors returns test error response body for getMultiErrors function
+func getMultiErrorResponseMultiErrors() string {
+	return `{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}]}`
+}
+
+// getErrorResponseForExampleErrorOneWithMetaBody returns test error response body for getErrorResponseForExampleErrorOne function with meta-data
+func getErrorResponseForExampleErrorOneWithMetaBody() string {
+	return `{"errors":[{"title":"Resource Not Found","status":"404"}],"meta":{"example":"meta in response"}}`
+}
+
+// getMultiErrorResponseMultiErrorsWithMetaBody returns test error response body for getMultiErrors function with meta-data
+func getMultiErrorResponseMultiErrorsWithMetaBody() string {
+	return `{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}],"meta":{"example":"meta in response"}}`
+}
+
+// getTestUser returns user used by tests
+func getTestUser() user {
+	return user{
+		ID:   "some-id",
+		Name: "john doe",
+	}
+}
+
+// getReplyFormattedHeader returns header in expected format for reply library
+func getReplyFormattedHeader() map[string]string {
+	return map[string]string{"correlation-id": "some-id"}
+}
+
+// getReplyFormattedMeta returns meta-data in expected format for reply library
+func getReplyFormattedMeta() map[string]interface{} {
+	return map[string]interface{}{
+		"example": "meta in response",
+	}
 }

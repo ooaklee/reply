@@ -698,58 +698,96 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 	}
 }
 
-func TestReplier_AideNewHTTPErrorResponse(t *testing.T) {
+func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 
 	tests := []struct {
 		name               string
 		manifests          []reply.ErrorManifest
-		err                error
-		StatusCode         int
+		passedError        error
+		responseAttributes []reply.ResponseAttributes
+		transferObject     reply.TransferObject
+		transferObjecError reply.TransferObjectError
 		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
 		expectedStatusCode int
 	}{
 		{
-			name: "Success - Resource not found",
-			manifests: append([]reply.ErrorManifest{
-				{"test-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
-			},
-				reply.ErrorManifest{
-					"test-401-error": reply.ErrorManifestItem{Title: "unauthorized", StatusCode: http.StatusUnauthorized},
-				},
-			),
-			err:                errors.New("test-404-error"),
-			expectedStatusCode: http.StatusNotFound,
-			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
-
-				response := baseStatusMessageResponse{}
-
-				err := unmarshalResponseBody(w, &response)
-				if err != nil {
-					t.Fatalf("cannot get response content: %v", err)
-				}
-
-				expectedResponse := baseStatusMessageResponse{}
-				expectedResponse.Status.Message = "resource not found"
-				assert.Equal(t, expectedResponse, response)
-			},
-		},
-		{
-			name:               "Failure - Error not in manifest",
-			manifests:          []reply.ErrorManifest{},
-			err:                errors.New("test-404-error"),
+			name:               "Failure - Error response",
+			manifests:          getEmptyErrorManifest(),
+			passedError:        getExampleErrorOne(),
 			expectedStatusCode: http.StatusInternalServerError,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
-				response := baseStatusMessageResponse{}
+				returnedBody := w.Body.String()
 
-				err := unmarshalResponseBody(w, &response)
-				if err != nil {
-					t.Fatalf("cannot get response content: %v", err)
-				}
+				assert.Equal(t, stringWithNewLine(getErrorResponseISEBody()), returnedBody)
 
-				expectedResponse := baseStatusMessageResponse{}
-				expectedResponse.Status.Message = "Internal Server Error"
-				assert.Equal(t, expectedResponse, response)
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Error response",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getExampleErrorOne(),
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOne()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:        "Success - Error response with Additional Headers",
+			manifests:   getDefaultErrorManifest(),
+			passedError: getExampleErrorOne(),
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOne()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		{
+			name:        "Success - Error response with Meta-Information",
+			manifests:   getDefaultErrorManifest(),
+			passedError: getExampleErrorOne(),
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: 404,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:        "Success - Error response with Meta-Information & Additional Header",
+			manifests:   getDefaultErrorManifest(),
+			passedError: getExampleErrorOne(),
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusNotFound,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
 		},
 	}
@@ -759,9 +797,151 @@ func TestReplier_AideNewHTTPErrorResponse(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			replier := reply.NewReplier(test.manifests)
+			var replier *reply.Replier
 
-			replier.NewHTTPErrorResponse(w, test.err)
+			switch {
+			case test.transferObject != nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject), reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject != nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject))
+			case test.transferObject == nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject == nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests)
+			}
+
+			if len(test.responseAttributes) > 0 {
+				replier.NewHTTPErrorResponse(w, test.passedError, test.responseAttributes...)
+			} else {
+				replier.NewHTTPErrorResponse(w, test.passedError)
+			}
+
+			assert.Equal(t, test.expectedStatusCode, w.Code)
+			test.assertResponse(w, t)
+		})
+	}
+}
+
+func TestReplier_NewHTTPMultiErrorResponseAide(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		manifests          []reply.ErrorManifest
+		passedErrors       []error
+		responseAttributes []reply.ResponseAttributes
+		transferObject     reply.TransferObject
+		transferObjecError reply.TransferObjectError
+		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
+		expectedStatusCode int
+	}{
+		{
+			name:               "Success - Multi Error response",
+			manifests:          getDefaultErrorManifest(),
+			passedErrors:       getMultiErrors(),
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrors()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Failure -  Multi Error response missing error",
+			manifests:          getEmptyErrorManifest(),
+			passedErrors:       getMultiErrorsWithMissingErr(),
+			expectedStatusCode: http.StatusInternalServerError,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getErrorResponseISEBody()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+
+		{
+			name:         "Success - Multi error response with Additional Headers",
+			manifests:    getDefaultErrorManifest(),
+			passedErrors: getMultiErrors(),
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrors()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+
+		{
+			name:         "Success - Multi error response with Meta-Information",
+			manifests:    getDefaultErrorManifest(),
+			passedErrors: getMultiErrors(),
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+
+		{
+			name:         "Success - Multi error response with Meta-Information & Additional Header",
+			manifests:    getDefaultErrorManifest(),
+			passedErrors: getMultiErrors(),
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			w := httptest.NewRecorder()
+
+			var replier *reply.Replier
+
+			switch {
+			case test.transferObject != nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject), reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject != nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject))
+			case test.transferObject == nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject == nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests)
+			}
+
+			if len(test.responseAttributes) > 0 {
+				replier.NewHTTPMultiErrorResponse(w, test.passedErrors, test.responseAttributes...)
+			} else {
+				replier.NewHTTPMultiErrorResponse(w, test.passedErrors)
+			}
 
 			assert.Equal(t, test.expectedStatusCode, w.Code)
 			test.assertResponse(w, t)

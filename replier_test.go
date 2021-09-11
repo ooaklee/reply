@@ -82,6 +82,46 @@ func getExampleErrorOne() error {
 	return errors.New("example-404-error")
 }
 
+// getBlankResponseBody returns default blank response body
+func getBlankResponseBody() string {
+	return `{"data":"{}"}`
+}
+
+// getBlankResponseWithMetaBody returns default blank response body with meta-data
+func getBlankResponseWithMetaBody() string {
+	return `{"data":"{}","meta":{"example":"meta in response"}}`
+}
+
+// getDataResponseBody returns test data response body
+func getDataResponseBody() string {
+	return `{"data":{"id":"some-id","name":"john doe"}}`
+}
+
+// getDataResponseWithMetaBody returns test data response body with meta-data
+func getDataResponseWithMetaBody() string {
+	return `{"data":{"id":"some-id","name":"john doe"},"meta":{"example":"meta in response"}}`
+}
+
+// getTestUser returns user used by tests
+func getTestUser() user {
+	return user{
+		ID:   "some-id",
+		Name: "john doe",
+	}
+}
+
+// getReplyFormattedHeader returns header in expected format for reply library
+func getReplyFormattedHeader() map[string]string {
+	return map[string]string{"correlation-id": "some-id"}
+}
+
+// getReplyFormattedMeta returns meta-data in expected format for reply library
+func getReplyFormattedMeta() map[string]interface{} {
+	return map[string]interface{}{
+		"example": "meta in response",
+	}
+}
+
 func TestReplier_NewHTTPResponse(t *testing.T) {
 
 	tests := []struct {
@@ -104,7 +144,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":"{}"}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getBlankResponseBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -120,7 +160,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":"{}"}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getBlankResponseBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -130,14 +170,14 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				StatusCode: 302,
-				Headers:    map[string]string{"correlation-id": "some-id"},
+				Headers:    getReplyFormattedHeader(),
 			},
 			expectedStatusCode: 302,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":"{}"}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getBlankResponseBody()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -147,16 +187,14 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				StatusCode: 302,
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
+				Meta:       getReplyFormattedMeta(),
 			},
 			expectedStatusCode: 302,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":"{}","meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getBlankResponseWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -166,17 +204,15 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				StatusCode: 302,
-				Headers:    map[string]string{"correlation-id": "some-id"},
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
+				Headers:    getReplyFormattedHeader(),
+				Meta:       getReplyFormattedMeta(),
 			},
 			expectedStatusCode: 302,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":"{}","meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getBlankResponseWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -187,10 +223,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			name:      "Success - Data response",
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
-				Data: user{
-					ID:   "some-id",
-					Name: "john doe",
-				},
+				Data:       getTestUser(),
 				StatusCode: 201,
 			},
 			expectedStatusCode: http.StatusCreated,
@@ -198,7 +231,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":{"id":"some-id","name":"john doe"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getDataResponseBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -207,19 +240,16 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			name:      "Success - Data response with Additional Headers",
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
-				Data: user{
-					ID:   "some-id",
-					Name: "john doe",
-				},
+				Data:       getTestUser(),
 				StatusCode: 201,
-				Headers:    map[string]string{"correlation-id": "some-id"},
+				Headers:    getReplyFormattedHeader(),
 			},
 			expectedStatusCode: http.StatusCreated,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":{"id":"some-id","name":"john doe"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getDataResponseBody()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -229,20 +259,15 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				StatusCode: 201,
-				Data: user{
-					ID:   "some-id",
-					Name: "john doe",
-				},
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
+				Data:       getTestUser(),
+				Meta:       getReplyFormattedMeta(),
 			},
 			expectedStatusCode: 201,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":{"id":"some-id","name":"john doe"},"meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getDataResponseWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -252,21 +277,16 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				StatusCode: 201,
-				Headers:    map[string]string{"correlation-id": "some-id"},
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
-				Data: user{
-					ID:   "some-id",
-					Name: "john doe",
-				},
+				Headers:    getReplyFormattedHeader(),
+				Meta:       getReplyFormattedMeta(),
+				Data:       getTestUser(),
 			},
 			expectedStatusCode: 201,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":{"id":"some-id","name":"john doe"},"meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getDataResponseWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -315,7 +335,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 				TokenOne:   "test-token-1",
 				TokenTwo:   "test-token-2",
 				StatusCode: 200,
-				Headers:    map[string]string{"correlation-id": "some-id"},
+				Headers:    getReplyFormattedHeader(),
 			},
 			expectedStatusCode: http.StatusOK,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -334,9 +354,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 				StatusCode: 200,
 				TokenOne:   "test-token-1",
 				TokenTwo:   "test-token-2",
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
+				Meta:       getReplyFormattedMeta(),
 			},
 			expectedStatusCode: 200,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -353,12 +371,10 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getEmptyErrorManifest(),
 			request: reply.NewResponseRequest{
 				StatusCode: 200,
-				Headers:    map[string]string{"correlation-id": "some-id"},
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
-				TokenOne: "test-token-1",
-				TokenTwo: "test-token-2",
+				Headers:    getReplyFormattedHeader(),
+				Meta:       getReplyFormattedMeta(),
+				TokenOne:   "test-token-1",
+				TokenTwo:   "test-token-2",
 			},
 			expectedStatusCode: 200,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -441,7 +457,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
 				Error:   getExampleErrorOne(),
-				Headers: map[string]string{"correlation-id": "some-id"},
+				Headers: getReplyFormattedHeader(),
 			},
 			expectedStatusCode: http.StatusNotFound,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -458,7 +474,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
 				Errors:  getMultiErrors(),
-				Headers: map[string]string{"correlation-id": "some-id"},
+				Headers: getReplyFormattedHeader(),
 			},
 			expectedStatusCode: http.StatusBadRequest,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -475,9 +491,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
 				Error: getExampleErrorOne(),
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
+				Meta:  getReplyFormattedMeta(),
 			},
 			expectedStatusCode: 404,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -494,9 +508,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
 				Errors: getMultiErrors(),
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
+				Meta:   getReplyFormattedMeta(),
 			},
 			expectedStatusCode: http.StatusBadRequest,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -513,10 +525,8 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
 				Error:   getExampleErrorOne(),
-				Headers: map[string]string{"correlation-id": "some-id"},
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
+				Headers: getReplyFormattedHeader(),
+				Meta:    getReplyFormattedMeta(),
 			},
 			expectedStatusCode: http.StatusNotFound,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -533,10 +543,8 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
 				Errors:  getMultiErrors(),
-				Headers: map[string]string{"correlation-id": "some-id"},
-				Meta: map[string]interface{}{
-					"example": "meta in response",
-				},
+				Headers: getReplyFormattedHeader(),
+				Meta:    getReplyFormattedMeta(),
 			},
 			expectedStatusCode: http.StatusBadRequest,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
@@ -554,12 +562,9 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			name:      "Success - Multi Error response should take precedence",
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
-				Errors: getMultiErrors(),
-				Error:  getExampleErrorOne(),
-				Data: user{
-					ID:   "some-id",
-					Name: "john doe",
-				},
+				Errors:     getMultiErrors(),
+				Error:      getExampleErrorOne(),
+				Data:       getTestUser(),
 				StatusCode: 201,
 			},
 			expectedStatusCode: http.StatusBadRequest,
@@ -576,11 +581,8 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			name:      "Success - Error response should take precedence",
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
-				Error: getExampleErrorOne(),
-				Data: user{
-					ID:   "some-id",
-					Name: "john doe",
-				},
+				Error:      getExampleErrorOne(),
+				Data:       getTestUser(),
 				StatusCode: 201,
 			},
 			expectedStatusCode: http.StatusNotFound,
@@ -597,10 +599,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 			name:      "Success - Data response should take precedence",
 			manifests: getDefaultErrorManifest(),
 			request: reply.NewResponseRequest{
-				Data: user{
-					ID:   "some-id",
-					Name: "john doe",
-				},
+				Data:       getTestUser(),
 				StatusCode: 201,
 			},
 			expectedStatusCode: http.StatusCreated,
@@ -608,7 +607,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":{"id":"some-id","name":"john doe"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getDataResponseBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -624,7 +623,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"data":"{}"}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getBlankResponseBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},

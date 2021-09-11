@@ -949,40 +949,91 @@ func TestReplier_NewHTTPMultiErrorResponseAide(t *testing.T) {
 	}
 }
 
-func TestReplier_AideNewHTTPDataResponse(t *testing.T) {
-
-	type user struct {
-		ID   string `json:"id,omitempty"`
-		Name string `json:"name,omitempty"`
-	}
+func TestReplier_NewHTTPDataResponseAide(t *testing.T) {
 
 	tests := []struct {
 		name               string
 		manifests          []reply.ErrorManifest
-		data               interface{}
-		StatusCode         int
+		passedStatusCode   int
+		passedData         interface{}
+		responseAttributes []reply.ResponseAttributes
+		transferObject     reply.TransferObject
+		transferObjecError reply.TransferObjectError
 		assertResponse     func(w *httptest.ResponseRecorder, t *testing.T)
 		expectedStatusCode int
 	}{
 		{
-			name:       "Success - Created Mock user",
-			manifests:  []reply.ErrorManifest{},
-			StatusCode: 201,
-			data: user{
-				ID:   "new-uuid",
-				Name: "Test User",
+			name:             "Success - Data response",
+			manifests:        getEmptyErrorManifest(),
+			passedStatusCode: 201,
+			passedData:       getTestUser(),
+
+			expectedStatusCode: http.StatusCreated,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getDataResponseBody()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Data response with Additional Headers",
+			manifests:        getEmptyErrorManifest(),
+			passedStatusCode: 201,
+			passedData:       getTestUser(),
+
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithHeaders(getReplyFormattedHeader()),
 			},
 			expectedStatusCode: http.StatusCreated,
 			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
 
-				response := baseTestResponse{}
+				returnedBody := w.Body.String()
 
-				err := unmarshalResponseBody(w, &response)
-				if err != nil {
-					t.Fatalf("cannot get response content: %v", err)
-				}
+				assert.Equal(t, stringWithNewLine(getDataResponseBody()), returnedBody)
 
-				assert.Equal(t, baseTestResponse{Data: map[string]interface{}{"id": "new-uuid", "name": "Test User"}}, response)
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Data response with Meta-Information",
+			manifests:        getEmptyErrorManifest(),
+			passedStatusCode: 201,
+			passedData:       getTestUser(),
+
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+			},
+			expectedStatusCode: 201,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getDataResponseWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:             "Success - Data response with Meta-Information & Additional Header",
+			manifests:        getEmptyErrorManifest(),
+			passedStatusCode: 201,
+			passedData:       getTestUser(),
+
+			responseAttributes: []reply.ResponseAttributes{
+				reply.WithMeta(getReplyFormattedMeta()),
+				reply.WithHeaders(getReplyFormattedHeader()),
+			},
+			expectedStatusCode: 201,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getDataResponseWithMetaBody()), returnedBody)
+
+				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
 		},
 	}
@@ -992,9 +1043,24 @@ func TestReplier_AideNewHTTPDataResponse(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			replier := reply.NewReplier(test.manifests)
+			var replier *reply.Replier
 
-			replier.NewHTTPDataResponse(w, test.StatusCode, test.data)
+			switch {
+			case test.transferObject != nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject), reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject != nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObject(test.transferObject))
+			case test.transferObject == nil && test.transferObjecError != nil:
+				replier = reply.NewReplier(test.manifests, reply.WithTransferObjectError(test.transferObjecError))
+			case test.transferObject == nil && test.transferObjecError == nil:
+				replier = reply.NewReplier(test.manifests)
+			}
+
+			if len(test.responseAttributes) > 0 {
+				replier.NewHTTPDataResponse(w, test.passedStatusCode, test.passedData, test.responseAttributes...)
+			} else {
+				replier.NewHTTPDataResponse(w, test.passedStatusCode, test.passedData)
+			}
 
 			assert.Equal(t, test.expectedStatusCode, w.Code)
 			test.assertResponse(w, t)

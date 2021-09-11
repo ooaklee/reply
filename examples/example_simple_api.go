@@ -180,17 +180,35 @@ type user struct {
 	Name string `json:"name"`
 }
 
+// Example implementation of Error Manifest
 var baseManifest []reply.ErrorManifest = []reply.ErrorManifest{
 	{"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
 	{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest}},
 	{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
 }
 
+// Replier with default Transition Object & Transition Object Error
 var replier *reply.Replier = reply.NewReplier(baseManifest)
 
+// Replier with custom Transition Object & default Transition Object Error
 var replierWithCustomTransitionObj *reply.Replier = reply.NewReplier(baseManifest, reply.WithTransferObject(&fooReplyTransferObject{}))
 
+// Replier with standard Transition Object & custom Transition Object Error
 var replierWithCustomTransitionObjError *reply.Replier = reply.NewReplier(baseManifest, reply.WithTransferObjectError(&barError{}))
+
+// Replier with custom Transition Object & custom Transition Object Error
+var replierWithCustomTransitionObjs *reply.Replier = reply.NewReplier(baseManifest, reply.WithTransferObjectError(&barError{}), reply.WithTransferObject(&fooReplyTransferObject{}))
+
+func simpleUsersAPINotFoundWithCustomTransitionObjsHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Do something with a server
+	serverErr := errors.New("example-404-error")
+
+	_ = replierWithCustomTransitionObjs.NewHTTPResponse(&reply.NewResponseRequest{
+		Writer: w,
+		Error:  serverErr,
+	})
+}
 
 func simpleUsersAPINotFoundHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -363,6 +381,7 @@ func handleRequest() {
 	http.HandleFunc("/tokens/refresh", simpleTokensAPIHandler)
 	http.HandleFunc("/defaults/1", simpleAPIDefaultResponseHandler)
 	http.HandleFunc("/custom/users/3", simpleUsersAPINotFoundCustomReplierHandler)
+	http.HandleFunc("/custom/users/404", simpleUsersAPINotFoundWithCustomTransitionObjsHandler)
 
 	http.HandleFunc("/aides/errors", simpleUsersAPIMultiErrorUsingAideHandler)
 	http.HandleFunc("/aides/errors/custom", simpleUsersAPIMultiErrorUsingAideWithCustomErrorHandler)

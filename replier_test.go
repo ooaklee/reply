@@ -102,6 +102,46 @@ func getDataResponseWithMetaBody() string {
 	return `{"data":{"id":"some-id","name":"john doe"},"meta":{"example":"meta in response"}}`
 }
 
+// getFullTokenResponseBody returns test full token response body
+func getFullTokenResponseBody() string {
+	return `{"access_token":"test-token-1","refresh_token":"test-token-2"}`
+}
+
+// getSingleTokenResponseBody returns test single token response body
+func getSingleTokenResponseBody() string {
+	return `{"access_token":"test-token-1"}`
+}
+
+// getFullTokenResponseWithMetaBody returns test  full token response body with meta-data
+func getFullTokenResponseWithMetaBody() string {
+	return `{"access_token":"test-token-1","refresh_token":"test-token-2","meta":{"example":"meta in response"}}`
+}
+
+// getErrorResponseBody returns internal server error response body
+func getErrorResponseISEBody() string {
+	return `{"errors":[{"title":"Internal Server Error","status":"500"}]}`
+}
+
+// getErrorResponseForExampleErrorOne returns test error response body for getErrorResponseForExampleErrorOne function
+func getErrorResponseForExampleErrorOne() string {
+	return `{"errors":[{"title":"Resource Not Found","status":"404"}]}`
+}
+
+// getMultiErrorResponseMultiErrors returns test error response body for getMultiErrors function
+func getMultiErrorResponseMultiErrors() string {
+	return `{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}]}`
+}
+
+// getErrorResponseForExampleErrorOneWithMetaBody returns test error response body for getErrorResponseForExampleErrorOne function with meta-data
+func getErrorResponseForExampleErrorOneWithMetaBody() string {
+	return `{"errors":[{"title":"Resource Not Found","status":"404"}],"meta":{"example":"meta in response"}}`
+}
+
+// getMultiErrorResponseMultiErrorsWithMetaBody returns test error response body for getMultiErrors function with meta-data
+func getMultiErrorResponseMultiErrorsWithMetaBody() string {
+	return `{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}],"meta":{"example":"meta in response"}}`
+}
+
 // getTestUser returns user used by tests
 func getTestUser() user {
 	return user{
@@ -306,7 +346,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"access_token":"test-token-1","refresh_token":"test-token-2"}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getFullTokenResponseBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -323,7 +363,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"access_token":"test-token-1"}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getSingleTokenResponseBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -342,7 +382,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"access_token":"test-token-1","refresh_token":"test-token-2"}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getFullTokenResponseBody()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -361,7 +401,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"access_token":"test-token-1","refresh_token":"test-token-2","meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getFullTokenResponseWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -381,7 +421,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"access_token":"test-token-1","refresh_token":"test-token-2","meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getFullTokenResponseWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -399,7 +439,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Internal Server Error","status":"500"}]}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getErrorResponseISEBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -415,7 +455,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Resource Not Found","status":"404"}]}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOne()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -431,7 +471,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}]}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrors()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -447,7 +487,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Internal Server Error","status":"500"}]}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getErrorResponseISEBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -464,7 +504,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Resource Not Found","status":"404"}]}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOne()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -481,7 +521,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}]}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrors()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -498,7 +538,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Resource Not Found","status":"404"}],"meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -515,7 +555,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}],"meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -533,7 +573,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Resource Not Found","status":"404"}],"meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -551,7 +591,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}],"meta":{"example":"meta in response"}}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsWithMetaBody()), returnedBody)
 
 				assert.Equal(t, getAdditionalHeaders(), w.Header())
 			},
@@ -572,7 +612,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Validation Error","detail":"Check your DoB, and try again.","status":"400","code":"100YT"},{"title":"Validation Error","detail":"The name provided does not meet validation requirements","about":"www.example.com/reply/validation/1011","status":"400","code":"1011"}]}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrors()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -590,7 +630,7 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(`{"errors":[{"title":"Resource Not Found","status":"404"}]}`), returnedBody)
+				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOne()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},

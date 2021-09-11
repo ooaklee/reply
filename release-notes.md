@@ -3,11 +3,11 @@
 ## [v1.0.0-alpha.3](https://github.com/ooaklee/reply/releases/tag/v1.0.0-alpha.3)
 2021-09-11
 
-* Refactor Token attributes & methods to have a more general name to make use of cases where API uses different token identifier less confusing
+* Refactor Token attributes & methods to have a more general name to make use of cases where API uses different token identifiers less confusing
   * `AccessToken` -> `TokenOne` & `RefreshToken` -> `TokenTwo`
     * Dev can create custom `TransferObject` to set JSON attribute to match their use case
 * Added logic to set `StatusCode` if not set already. Defaults to `400`.
-* Updated README to better describe library
+* Updated README to better describe the library
 
 ## [v1.0.0-alpha.2](https://github.com/ooaklee/reply/releases/tag/v1.0.0-alpha.2)
 2021-09-10

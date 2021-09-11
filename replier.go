@@ -251,6 +251,8 @@ func (r *Replier) getErrorManifestItem(err error) ErrorManifestItem {
 		log.Printf("reply/error-response: failed to find error manifest item for %v", err)
 	}
 
+	// TODO: Set default error status Code on manifest item if unset
+
 	return manifestItem
 }
 

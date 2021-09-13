@@ -14,7 +14,7 @@
   - [Sending  "successful responses"](#sending--successful-responses)
 - [Transfer Objects](#transfer-objects)
   - [Base Transfer Object (`TransferObject`)](#base-transfer-object-transferobject)
-  - [Eroor Transfer Object (`TransferObjectError`)](#eroor-transfer-object-transferobjecterror)
+  - [Error Transfer Object (`TransferObjectError`)](#error-transfer-object-transferobjecterror)
 - [Response Types](#response-types)
   - [Universal Attributes](#universal-attributes)
   - [Error Response Type](#error-response-type)

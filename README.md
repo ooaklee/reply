@@ -122,7 +122,7 @@ And its respective error was passed when creating a new error response (`NewHTTP
 }
 ```
 
-If instead, multiple errors were passed to the `NewHTTPMultiErrorResponse` method, and all had an entry in the `ErrorManifest`, `reply` would return a response similar to the following JSON response:
+If instead, multiple errors were passed to the `NewHTTPMultiErrorResponse` method or errors keys were wrapped and passed to `NewHTTPErrorResponse`, and all had an entry in the `ErrorManifest`, `reply` would return a response similar to the following JSON response:
 
 
 ```json
@@ -161,6 +161,8 @@ Having expected `ErrorManifest` entries are especially important for `Multi Erro
 There are currently **3** Replier methods that make use of the `Error Manifest`. These methods are `NewHTTPResponse`, `NewHTTPMultiErrorResponse` and `NewHTTPErrorResponse`.
 
 > NOTE - `NewHTTPResponse` is the base of both the `NewHTTPMultiErrorResponse` and `NewHTTPErrorResponse` aides.
+>
+> NOTE - You can get `NewHTTPErrorResponse` to behave like `NewHTTPMultiErrorResponse` by wrapping your error keys with `errors.Join(errs...)`
 
 Below you will find an example using `NewHTTPResponse`. However, for simplicity, it's recommended you use one of the error aides. The error [aide implementation is outlined **HERE**](#error-response-type).
 
@@ -377,7 +379,9 @@ All core response types share universal attributes, which you can set in additio
 
 ### Error Response Type
 
-The `Error` response notifies the consumer when an error/ unexpected behaviour has occurred on the API. There are **2** types of `Error Response Types`, Individual (`NewHTTPErrorResponse`) and Multi (`NewHTTPMultiErrorResponse`).
+The `Error` response notifies the consumer when an error/ unexpected behaviour has occurred on the API. There are **2** types of `Error Response Types`, `NewHTTPErrorResponse` and `NewHTTPMultiErrorResponse`.
+
+> Where `NewHTTPMultiErrorResponse` explicitly expects a slice of errors, `NewHTTPErrorResponse` can also return multi errors response by wrapping the manifest key errors with `errors.Join(errs...)`.
 
 The error response object forwarded to the consumer is sourced from the [error manifest](#more-about-the-errormanifest). In the event the error's string
 representation isn't in the manifest; `reply` will return the consumer a "500 - Internal Server Error" response.
@@ -424,6 +428,22 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
   _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
     Writer: w,
     Errors: exampleErrs,
+  })
+}
+
+```
+
+You can also send a `multi error response` with a single error by wrapping the error keys with `errors.Join(errs...)`:
+
+```go
+func ExampleHandler(w http.ResponseWriter, r *http.Request) {
+
+  // errors returned
+  exampleWrappedErr := errors.Join(errors.New("example-name-validation-error"), errors.New("example-email-validation-error"))
+
+  _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
+    Writer: w,
+    Error: exampleWrappedErr,
   })
 }
 

@@ -599,6 +599,20 @@ func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 			},
 		},
 		{
+			name:               "Success - Wrapped Error Response (Multi Error response)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getWrappedErrors(),
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrors()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
 			name:        "Success - Error response with Additional Headers",
 			manifests:   getDefaultErrorManifest(),
 			passedError: getExampleErrorOne(),
@@ -678,6 +692,21 @@ func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 				returnedBody := w.Body.String()
 
 				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneUsingCustomTOE()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Wrapped Error Response (Multi Error response w/ Custom TOE)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getWrappedErrors(),
+			transferObjecError: &barError{},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsUsingCustomTOE()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -767,6 +796,22 @@ func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 				returnedBody := w.Body.String()
 
 				assert.Equal(t, stringWithNewLine(getErrorResponseForExampleErrorOneUsingCustomTOEAndTO()), returnedBody)
+
+				assert.Equal(t, getDefaultHeader(), w.Header())
+			},
+		},
+		{
+			name:               "Success - Wrapped Error Response (Multi Error response w/ Custom TOE & TO)",
+			manifests:          getDefaultErrorManifest(),
+			passedError:        getWrappedErrors(),
+			transferObjecError: &barError{},
+			transferObject:     &fooReplyTransferObject{},
+			expectedStatusCode: http.StatusBadRequest,
+			assertResponse: func(w *httptest.ResponseRecorder, t *testing.T) {
+
+				returnedBody := w.Body.String()
+
+				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsUsingCustomTOEAndTO()), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -1568,8 +1613,8 @@ func getEmptyErrorManifest() []reply.ErrorManifest {
 func getDefaultErrorManifest() []reply.ErrorManifest {
 	return []reply.ErrorManifest{
 		{"example-404-error": reply.ErrorManifestItem{Title: "Resource Not Found", StatusCode: http.StatusNotFound}},
-		{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
 		{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
+		{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
 	}
 }
 
@@ -1579,6 +1624,16 @@ func getMultiErrors() []error {
 		errors.New("example-dob-validation-error"),
 		errors.New("example-name-validation-error"),
 	}
+}
+
+// getWrappedErrors returns wrapped errors
+func getWrappedErrors() error {
+
+	err := errors.New("example-name-validation-error")
+	errTwo := errors.New("example-dob-validation-error")
+
+	return errors.Join(err, errTwo)
+
 }
 
 // getMultiErrorsWithMissingErr returns example errors with one error
@@ -1738,8 +1793,8 @@ func getReplyFormattedMeta() map[string]interface{} {
 	}
 }
 
-/////////////////////////////////////////////////
-/////// Custom Transition Object Example ////////
+// ///////////////////////////////////////////////
+// ///// Custom Transition Object Example ////////
 // This is an example of how you can create a
 // custom response structure based on your
 // requirements.

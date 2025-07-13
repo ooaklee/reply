@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
+	"strings"
 )
 
 // TransferObjectError outlines expected methods of a transfer object error
@@ -226,11 +228,48 @@ func (r *Replier) generateMultiErrorResponse(errs []error) error {
 // generateErrorResponse generates correct error response based on passed
 // error
 func (r *Replier) generateErrorResponse(err error) error {
+
+	var passedErrsFoundInProvidedManifest []error
+	var manifestKeysAsErrList = r.getManifestKeysList()
+	var passedErrAsSlice = strings.Split(err.Error(), "\n")
+
+	if len(passedErrAsSlice) == 1 {
+		return r.handleSingleErrorResponseGeneration(err)
+	}
+
+	for _, manifestErrKey := range manifestKeysAsErrList {
+		if slices.Contains(passedErrAsSlice, manifestErrKey) {
+			passedErrsFoundInProvidedManifest = append(passedErrsFoundInProvidedManifest, errors.New(manifestErrKey))
+			continue
+		}
+	}
+
+	if len(passedErrsFoundInProvidedManifest) == 0 {
+		return r.handleSingleErrorResponseGeneration(err)
+	}
+
+	return r.generateMultiErrorResponse(passedErrsFoundInProvidedManifest)
+}
+
+// handleSingleErrorResponseGeneration handles sending response for a single
+// error
+func (r *Replier) handleSingleErrorResponseGeneration(err error) error {
 	manifestItem := r.getErrorManifestItem(err)
 
 	transferObjectErrors := append([]TransferObjectError{}, r.convertErrorManifestItemToTransferObjectError(manifestItem))
 
 	return r.sendHTTPErrorsResponse(manifestItem.StatusCode, transferObjectErrors)
+}
+
+// getManifestKeysList returns the list of error keys from the error manifest
+func (r *Replier) getManifestKeysList() []string {
+	var errorKeyList []string
+
+	for errKey := range r.errorManifest {
+		errorKeyList = append(errorKeyList, errKey)
+	}
+
+	return errorKeyList
 }
 
 // sendHTTPErrorsResponse handles setting status code and transfer object errors before

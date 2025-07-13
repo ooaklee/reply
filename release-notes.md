@@ -1,5 +1,13 @@
 # Reply Release Notes
 
+## [v1.1.0](https://github.com/ooaklee/reply/releases/tag/v1.1.0)
+2025-07-13
+
+* Updated `go.mod` to go 1.20
+* Updated `NewHTTPErrorResponse` to behave like `NewHTTPMultiErrorResponse` when manifest errors are wrapped, i.e. `errors.Join(errs...)`
+* Updated `README.md` to reflect the changes to `NewHTTPErrorResponse` and provide an example of how to use it with wrapped errors
+* Added a new test case to verify the changes
+
 ## [v1.0.0](https://github.com/ooaklee/reply/releases/tag/v1.0.0)
 2021-09-11
 

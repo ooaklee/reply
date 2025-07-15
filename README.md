@@ -55,17 +55,33 @@ When creating a `Replier`, you only have to pass a `reply.ErrorManifest` collect
 Just remember, when creating an `Error Response` (Multi or Single), the passed manifest will be used.
 
 ```go
-// (Optional) Create an error manifest to hold correlating errors as a string and their manifest
-// item
+// Have a definition of errors you want to use in your application
+var (
+	// errExample404 is an example 404 error
+	errExample404 = errors.New("example-404-error")
+	// errExampleDobValidation is an example dob validation error
+	errExampleDobValidation = errors.New("example-dob-validation-error")
+	// errExampleNameValidation is an example name validation error
+	errExampleNameValidation = errors.New("example-name-validation-error")
+	// errExampleMissing is an example missing error
+	errExampleMissing = errors.New("example-missing-error")
+	// errExampleEmailValidation is an example email validation error
+	errExampleEmailValidation = errors.New("example-email-validation-error")
+)
+
+// (Optional) Create an error manifest to hold correlating errors and their manifest item.
+// These can be also be sourced from relevant packages to populate
 //
 // See how we have to reply.ErrorManifests, on with mulitple
 // items and the other with just one.
 baseManifest := []reply.ErrorManifest{
     {
-      "example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound},
-      "example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"},
+      errExample404: reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound},
+      errExampleNameValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"},
     },
-    {"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
+    {errExampleDobValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
+    // example using error from another package
+    // {somepackage.ErrNotFound: reply.ErrorManifestItem{Title: "Not Found", Detail: "The requested resource was not found", Code: "404", StatusCode: http.StatusNotFound}},
   }
 
 // Create Replier to manage the responses going back to consumer(s)
@@ -76,9 +92,9 @@ replier := reply.NewReplier(baseManifest)
 
 ### More about the `ErrorManifest` 
 
-The `ErrorManifest` contains a string key which is the string representation of an `error type` and its corresponding `ErrorManifestItem`.
+The `ErrorManifest` contains an error and its corresponding `ErrorManifestItem`.
 
-The `ErrorManifestItem` is used to explicitly define the attributes to include in your response's error object. Like previously mentioned, the string key is returned when `err.Error()` is run, assuming err was the standard `error type`.
+The `ErrorManifestItem` is used to explicitly define the attributes to include in your response's error object. Like previously mentioned, the `ErrorManifestItem` should be created against the explicit error used in your code or taken from a package you're using.
 
 #### Deeper look into `ErrorManifestItem`
 
@@ -103,7 +119,8 @@ The key attributes of the `ErrorManifestItem` are:
 Assuming an `ErrorManifest` containing the following entry was passed to a `Replier`,
 
 ```go
-{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}}
+// manifest item references error defined in previous example
+{errExampleNameValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}}
 ``` 
 
 And its respective error was passed when creating a new error response (`NewHTTPErrorResponse`). `reply` would return the following JSON response:
@@ -152,7 +169,9 @@ If instead, multiple errors were passed to the `NewHTTPMultiErrorResponse` metho
 
 At the core, you can use `reply` two send both successful and error responses.
 
-When sending an error response, it is essential to make sure you populate the `Error Manifest` passed to the `Replier` with the correct error key strings. Otherwise, a `500 - Internal Server Error` response will be sent back to the client by default if it cannot match the passed error in the manifest.
+When sending an error response, it is essential to make sure you populate the `Error Manifest` passed to the `Replier` with the correct errors source from your code or packages. Otherwise, a `500 - Internal Server Error` response will be sent back to the client by default if it cannot match the passed error in the manifest.
+
+> When matching `errors.Is` is used, the error in the manifest should be the same error as the one passed.
 
 Having expected `ErrorManifest` entries are especially important for `Multi Error` responses. One unmatched error will return a single `500 - Internal Server Error` instead of the array of passed error responses.
 
@@ -172,15 +191,12 @@ Below you will find an example using `NewHTTPResponse`. However, for simplicity,
 // response
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-  // Create error with value corresponding to one of the manifest's entry's key
-  exampleErr := errors.New("example-404-error")
-
-
   // Pass error to Replier's method to return predefined response, else
   // 500
   _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
     Writer: w,
-    Error:  exampleErr,
+    // errExample404 defined in previous example
+    Error:  errExample404,
   })
 }
 ```
@@ -381,7 +397,7 @@ All core response types share universal attributes, which you can set in additio
 
 The `Error` response notifies the consumer when an error/ unexpected behaviour has occurred on the API. There are **2** types of `Error Response Types`, `NewHTTPErrorResponse` and `NewHTTPMultiErrorResponse`.
 
-> Where `NewHTTPMultiErrorResponse` explicitly expects a slice of errors, `NewHTTPErrorResponse` can also return multi errors response by wrapping the manifest key errors with `errors.Join(errs...)`.
+> Where `NewHTTPMultiErrorResponse` explicitly expects a slice of errors, `NewHTTPErrorResponse` can also return multi errors response by wrapping the manifest errors with `errors.Join(errs...)`.
 
 The error response object forwarded to the consumer is sourced from the [error manifest](#more-about-the-errormanifest). In the event the error's string
 representation isn't in the manifest; `reply` will return the consumer a "500 - Internal Server Error" response.
@@ -391,12 +407,12 @@ representation isn't in the manifest; `reply` will return the consumer a "500 - 
 To create an individual `error` response use the following code snippet:
 
 ```go
-// create error manifest
+// create error manifest using errors defined in application (see previous example for error definitions)
 baseManifest := []reply.ErrorManifest{
-  {"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound},
-    "example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"},
+  {errExample404: reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound},
+    errExampleNameValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"},
   },
-  "example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest},
+  errExampleDobValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest},
 }
 
 // create Replier based on error manifest
@@ -404,12 +420,9 @@ replier := reply.NewReplier(baseManifest)
 
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
-  // error returned
-  exampleErr := errors.New("example-404-error")
-
   _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
     Writer: w,
-    Error:  exampleErr,
+    Error:  errExample404,
   })
 }
 ```
@@ -421,8 +434,8 @@ func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
   // errors returned
   exampleErrs := []errors{
-    errors.New("example-name-validation-error"),
-    errors.New("example-dob-validation-error"),
+    errExampleNameValidation,
+    errExampleDobValidation,
   }
 
   _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
@@ -439,7 +452,7 @@ You can also send a `multi error response` with a single error by wrapping the e
 func ExampleHandler(w http.ResponseWriter, r *http.Request) {
 
   // errors returned
-  exampleWrappedErr := errors.Join(errors.New("example-name-validation-error"), errors.New("example-email-validation-error"))
+  exampleWrappedErr := errors.Join(errExampleNameValidation, errExampleEmailValidation)
 
   _ = replier.NewHTTPResponse(&reply.NewResponseRequest{
     Writer: w,

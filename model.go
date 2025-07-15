@@ -48,9 +48,9 @@ type ErrorManifestItem struct {
 	Meta interface{}
 }
 
-// ErrorManifest holds error reference (string) with its corresponding
+// ErrorManifest holds error  with its corresponding
 // manifest item (message & status code) which it returned in the response
-type ErrorManifest map[string]ErrorManifestItem
+type ErrorManifest map[error]ErrorManifestItem
 
 // defaultReplyTransferObjectError holds attributes often used to give additional
 // context when unexpected behaviour occurs

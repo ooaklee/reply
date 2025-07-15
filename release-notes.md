@@ -1,5 +1,13 @@
 # Reply Release Notes
 
+## [v2.0.0](https://github.com/ooaklee/reply/releases/tag/v2.0.0)
+2025-07-15
+
+* Updated `ErrorManifest` to use `error` as the key instead of `string`
+* Updated `replier.go` to reflect the changes to `ErrorManifest` and use `errors.Is` for error matching
+* Updated `README.md` to reflect the changes
+* Reflected changes in `examples/example_simple_api.go` and provide examples of how to use it with errors
+
 ## [v1.1.0](https://github.com/ooaklee/reply/releases/tag/v1.1.0)
 2025-07-13
 

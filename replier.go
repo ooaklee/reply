@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 )
@@ -230,16 +229,16 @@ func (r *Replier) generateMultiErrorResponse(errs []error) error {
 func (r *Replier) generateErrorResponse(err error) error {
 
 	var passedErrsFoundInProvidedManifest []error
-	var manifestKeysAsErrList = r.getManifestKeysList()
+	var manifestAsErrList = r.getManifestErrList()
 	var passedErrAsSlice = strings.Split(err.Error(), "\n")
 
 	if len(passedErrAsSlice) == 1 {
 		return r.handleSingleErrorResponseGeneration(err)
 	}
 
-	for _, manifestErrKey := range manifestKeysAsErrList {
-		if slices.Contains(passedErrAsSlice, manifestErrKey) {
-			passedErrsFoundInProvidedManifest = append(passedErrsFoundInProvidedManifest, errors.New(manifestErrKey))
+	for _, manifestErr := range manifestAsErrList {
+		if errors.Is(err, manifestErr) {
+			passedErrsFoundInProvidedManifest = append(passedErrsFoundInProvidedManifest, manifestErr)
 			continue
 		}
 	}
@@ -261,15 +260,15 @@ func (r *Replier) handleSingleErrorResponseGeneration(err error) error {
 	return r.sendHTTPErrorsResponse(manifestItem.StatusCode, transferObjectErrors)
 }
 
-// getManifestKeysList returns the list of error keys from the error manifest
-func (r *Replier) getManifestKeysList() []string {
-	var errorKeyList []string
+// getManifestErrList returns the list of errors from the error manifest
+func (r *Replier) getManifestErrList() []error {
+	var errorList []error
 
-	for errKey := range r.errorManifest {
-		errorKeyList = append(errorKeyList, errKey)
+	for err := range r.errorManifest {
+		errorList = append(errorList, err)
 	}
 
-	return errorKeyList
+	return errorList
 }
 
 // sendHTTPErrorsResponse handles setting status code and transfer object errors before
@@ -284,7 +283,8 @@ func (r *Replier) sendHTTPErrorsResponse(statusCode int, transferObjectErrors []
 // getErrorManifestItem returns the corresponding manifest Item if found,
 // otherwise the internal server error is returned
 func (r *Replier) getErrorManifestItem(err error) ErrorManifestItem {
-	manifestItem, ok := r.errorManifest[err.Error()]
+
+	manifestItem, ok := r.errorManifest[err]
 	if !ok {
 		manifestItem = getInternalServertErrorManifestItem()
 		log.Printf("reply/error-response: failed to find error manifest item for %v", err)
@@ -412,11 +412,11 @@ func mergeManifestCollections(manifests []ErrorManifest) ErrorManifest {
 	return mergedManifests
 }
 
-// getManifestItems pulls the key and items from the manifest and inserts into final manifest
+// getManifestItems pulls the error and items from the manifest and inserts into final manifest
 func getManifestItems(manifest ErrorManifest, finalManifest ErrorManifest) {
 
-	for key, item := range manifest {
-		finalManifest[key] = item
+	for err, item := range manifest {
+		finalManifest[err] = item
 	}
 }
 

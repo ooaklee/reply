@@ -1589,6 +1589,18 @@ func TestReplier_NewHTTPBlankResponseAide(t *testing.T) {
 	}
 }
 
+// define application errors
+var (
+	// errExample404 is an example 404 error
+	errExample404 = errors.New("example-404-error")
+	// errExampleDobValidation is an example dob validation error
+	errExampleDobValidation = errors.New("example-dob-validation-error")
+	// errExampleNameValidation is an example name validation error
+	errExampleNameValidation = errors.New("example-name-validation-error")
+	// errExampleMissing is an example missing error
+	errExampleMissing = errors.New("example-missing-error")
+)
+
 // stringWithNewLine appends new line to passed string
 func stringWithNewLine(s string) string {
 	return fmt.Sprintf("%s\n", s)
@@ -1612,39 +1624,35 @@ func getEmptyErrorManifest() []reply.ErrorManifest {
 // getDefaultErrorManifest returns the default manifest
 func getDefaultErrorManifest() []reply.ErrorManifest {
 	return []reply.ErrorManifest{
-		{"example-404-error": reply.ErrorManifestItem{Title: "Resource Not Found", StatusCode: http.StatusNotFound}},
-		{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
-		{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
+		{errExample404: reply.ErrorManifestItem{Title: "Resource Not Found", StatusCode: http.StatusNotFound}},
+		{errExampleDobValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
+		{errExampleNameValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
 	}
 }
 
 // getMultiErrors returns example errors
 func getMultiErrors() []error {
 	return []error{
-		errors.New("example-dob-validation-error"),
-		errors.New("example-name-validation-error"),
+		errExampleDobValidation,
+		errExampleNameValidation,
 	}
 }
 
 // getWrappedErrors returns wrapped errors
 func getWrappedErrors() error {
-
-	err := errors.New("example-name-validation-error")
-	errTwo := errors.New("example-dob-validation-error")
-
-	return errors.Join(err, errTwo)
+	return errors.Join(errExampleNameValidation, errExampleDobValidation)
 
 }
 
 // getMultiErrorsWithMissingErr returns example errors with one error
 // that does not exist in manifest
 func getMultiErrorsWithMissingErr() []error {
-	return append(getMultiErrors(), errors.New("example-missing-error"))
+	return append(getMultiErrors(), errExampleMissing)
 }
 
 // getExampleErrorOne returns example error (1)
 func getExampleErrorOne() error {
-	return errors.New("example-404-error")
+	return errExample404
 }
 
 // getBlankResponseBody returns default blank response body

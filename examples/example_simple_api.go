@@ -180,11 +180,23 @@ type user struct {
 	Name string `json:"name"`
 }
 
+// handle errors
+var (
+	// errExample404 is an example 404 error
+	errExample404 = errors.New("example-404-error")
+	// errExampleDobValidation is an example dob validation error
+	errExampleDobValidation = errors.New("example-dob-validation-error")
+	// errExampleNameValidation is an example name validation error
+	errExampleNameValidation = errors.New("example-name-validation-error")
+	// errExampleMissing is an example missing error
+	errExampleMissing = errors.New("example-missing-error")
+)
+
 // Example implementation of Error Manifest
 var baseManifest []reply.ErrorManifest = []reply.ErrorManifest{
-	{"example-404-error": reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
-	{"example-name-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
-	{"example-dob-validation-error": reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
+	{errExample404: reply.ErrorManifestItem{Title: "resource not found", StatusCode: http.StatusNotFound}},
+	{errExampleNameValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "The name provided does not meet validation requirements", StatusCode: http.StatusBadRequest, About: "www.example.com/reply/validation/1011", Code: "1011"}},
+	{errExampleDobValidation: reply.ErrorManifestItem{Title: "Validation Error", Detail: "Check your DoB, and try again.", Code: "100YT", StatusCode: http.StatusBadRequest}},
 }
 
 // Replier with default Transition Object & Transition Object Error
@@ -202,7 +214,7 @@ var replierWithCustomTransitionObjs *reply.Replier = reply.NewReplier(baseManife
 func simpleUsersAPINotFoundWithCustomTransitionObjsHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
-	serverErr := errors.New("example-404-error")
+	serverErr := errExample404
 
 	_ = replierWithCustomTransitionObjs.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
@@ -213,7 +225,7 @@ func simpleUsersAPINotFoundWithCustomTransitionObjsHandler(w http.ResponseWriter
 func simpleUsersAPINotFoundHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
-	serverErr := errors.New("example-404-error")
+	serverErr := errExample404
 
 	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
@@ -224,7 +236,7 @@ func simpleUsersAPINotFoundHandler(w http.ResponseWriter, r *http.Request) {
 func simpleUsersAPIMultiErrorHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
-	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+	serverErrs := []error{errExampleDobValidation, errExampleNameValidation}
 
 	_ = replier.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
@@ -286,7 +298,7 @@ func simpleAPIDefaultResponseHandler(w http.ResponseWriter, r *http.Request) {
 func simpleUsersAPINotFoundCustomReplierHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
-	serverErr := errors.New("example-404-error")
+	serverErr := errExample404
 
 	replierWithCustomTransitionObj.NewHTTPResponse(&reply.NewResponseRequest{
 		Writer: w,
@@ -300,7 +312,7 @@ func simpleUsersAPINotFoundCustomReplierHandler(w http.ResponseWriter, r *http.R
 func simpleUsersAPIMultiErrorUsingAideWithCustomErrorHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
-	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+	serverErrs := []error{errExampleDobValidation, errExampleNameValidation}
 
 	_ = replierWithCustomTransitionObjError.NewHTTPMultiErrorResponse(w, serverErrs)
 }
@@ -308,7 +320,7 @@ func simpleUsersAPIMultiErrorUsingAideWithCustomErrorHandler(w http.ResponseWrit
 func simpleUsersAPIMultiErrorUsingAideHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
-	serverErrs := []error{errors.New("example-dob-validation-error"), errors.New("example-name-validation-error")}
+	serverErrs := []error{errExampleDobValidation, errExampleNameValidation}
 
 	_ = replier.NewHTTPMultiErrorResponse(w, serverErrs)
 }
@@ -316,7 +328,7 @@ func simpleUsersAPIMultiErrorUsingAideHandler(w http.ResponseWriter, r *http.Req
 func simpleUsersAPINotFoundUsingAideHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
-	serverErr := errors.New("example-404-error")
+	serverErr := errExample404
 
 	_ = replier.NewHTTPErrorResponse(w, serverErr)
 }
@@ -364,7 +376,7 @@ func simpleAPIDefaultResponseUsingAideHandler(w http.ResponseWriter, r *http.Req
 func simpleUsersAPINotFoundCustomReplierUsingAideHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with a server
-	serverErr := errors.New("example-404-error")
+	serverErr := errExample404
 
 	replierWithCustomTransitionObj.NewHTTPErrorResponse(w, serverErr)
 }

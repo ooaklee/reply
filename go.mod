@@ -1,6 +1,6 @@
 module github.com/ooaklee/reply
 
-go 1.20
+go 1.23.0
 
 require github.com/stretchr/testify v1.7.0
 

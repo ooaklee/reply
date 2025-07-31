@@ -1,5 +1,10 @@
 # Reply Release Notes
 
+## [v2.1.0](https://github.com/ooaklee/reply/releases/tag/v2.1.0)
+2025-07-31
+
+* Updated `go.mod` to go `1.23.0`
+
 ## [v2.0.0](https://github.com/ooaklee/reply/releases/tag/v2.0.0)
 2025-07-15
 

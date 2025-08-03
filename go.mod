@@ -1,4 +1,4 @@
-module github.com/ooaklee/reply
+module github.com/ooaklee/reply/v2
 
 go 1.20
 

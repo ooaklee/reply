@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ooaklee/reply"
+	"github.com/ooaklee/reply/v2"
 	"github.com/stretchr/testify/assert"
 )
 

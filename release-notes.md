@@ -1,6 +1,11 @@
 # Reply Release Notes
 
 ## [v2.0.0](https://github.com/ooaklee/reply/releases/tag/v2.0.0)
+2025-08-03
+
+* Updated module to `github.com/ooaklee/reply/v2`
+
+## [v2.0.0-alpha](https://github.com/ooaklee/reply/releases/tag/v2.0.0-alpha)
 2025-07-15
 
 * Updated `ErrorManifest` to use `error` as the key instead of `string`

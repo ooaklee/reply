@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ooaklee/reply"
+	"github.com/ooaklee/reply/v2"
 )
 
 /////////////////////////////////////////////////

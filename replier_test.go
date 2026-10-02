@@ -1640,7 +1640,9 @@ func getMultiErrors() []error {
 
 // getWrappedErrors returns wrapped errors
 func getWrappedErrors() error {
-	return errors.Join(errExampleNameValidation, errExampleDobValidation)
+	// Both entry points use the same explicit order; map iteration is no longer
+	// an accidental source of joined-response ordering.
+	return errors.Join(getMultiErrors()...)
 
 }
 

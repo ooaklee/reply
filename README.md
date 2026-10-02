@@ -40,8 +40,12 @@
 
 ## Installation
 
+The unreleased response-resolution improvements are documented in the
+[integration guide](UPGRADING.md) and [changelog](CHANGELOG.md), including wrapped
+errors, deterministic joins, request-local state and safe diagnostics.
+
 ```sh
-  go get github.com/ooaklee/reply
+  go get github.com/ooaklee/reply/v2
 ```
 
 ## Getting Started

@@ -5,13 +5,11 @@
 package reply
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
-	"strconv"
-	"strings"
 )
 
 // TransferObjectError outlines expected methods of a transfer object error
@@ -60,15 +58,17 @@ const (
 // Option used to build on top of default Replier features
 type Option func(*Replier)
 
-// WithTransferObject sets the base transfer object used for response
+// WithTransferObject supplies a response prototype. RefreshTransferObject must
+// return independent state and be safe to call concurrently without mutating
+// this prototype when the Replier is shared between requests.
 func WithTransferObject(replacementTransferObject TransferObject) Option {
 	return func(r *Replier) {
 		r.transferObject = replacementTransferObject
 	}
 }
 
-// WithTransferObjectError sets the transfer object error used to represent
-// errors in response
+// WithTransferObjectError supplies an error prototype. Its refresh method must
+// return independent objects and be concurrency-safe for a shared Replier.
 func WithTransferObjectError(replacementTransferObjectError TransferObjectError) Option {
 	return func(r *Replier) {
 		r.transferObjectError = replacementTransferObjectError
@@ -77,16 +77,29 @@ func WithTransferObjectError(replacementTransferObjectError TransferObjectError)
 
 // NewResponseRequest holds attributes for response
 type NewResponseRequest struct {
-	Writer     http.ResponseWriter
-	Data       interface{}
-	Meta       map[string]interface{}
-	Headers    map[string]string
+	// Context is optional request context for safe failure observation; it does
+	// not alter response fields, status, or the writer's cancellation semantics.
+	Context context.Context
+	// Writer is the caller-owned destination, required for every response.
+	Writer http.ResponseWriter
+	// Data is the success payload; nil retains the existing blank-response behavior.
+	Data interface{}
+	// Meta contains caller-approved public response metadata.
+	Meta map[string]interface{}
+	// Headers contains caller-approved HTTP headers applied to this response.
+	Headers map[string]string
+	// StatusCode selects the success status; mapped errors use their manifest status.
 	StatusCode int
-	Message    string
-	Error      error
-	Errors     []error
-	TokenOne   string
-	TokenTwo   string
+	// Message is retained for source compatibility; built-in responses do not use it.
+	Message string
+	// Error supplies one error tree when Errors is empty.
+	Error error
+	// Errors supplies error trees with precedence over Error and success payloads.
+	Errors []error
+	// TokenOne is the optional access token returned by a successful token response.
+	TokenOne string
+	// TokenTwo is the optional refresh token returned by a successful token response.
+	TokenTwo string
 }
 
 // Replier handles managing responses
@@ -101,6 +114,18 @@ type Replier struct {
 
 	// Error object base used to shape error objects in response
 	transferObjectError TransferObjectError
+
+	// unmappedErrorObserver reports incomplete resolution without raw diagnostics.
+	unmappedErrorObserver func(context.Context)
+}
+
+// WithUnmappedErrorObserver observes one unresolved response using its request
+// context, or context.Background when none was supplied. No error text or values
+// are passed and default behavior is silent. The callback runs synchronously,
+// must be concurrency-safe and should not panic or block response delivery.
+// Use it for request-correlated metrics; redact any context-derived log fields.
+func WithUnmappedErrorObserver(observer func(context.Context)) Option {
+	return func(r *Replier) { r.unmappedErrorObserver = observer }
 }
 
 // NewReplier returns a new Replier pointer that shapes and handles both
@@ -121,7 +146,9 @@ func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 
 	// Add option add-ons on replier
 	for _, option := range options {
-		option(&replier)
+		if option != nil {
+			option(&replier)
+		}
 	}
 
 	return &replier
@@ -129,6 +156,8 @@ func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 
 // NewHTTPResponse handles generating and sending of an appropriate HTTP response body
 // based response attributes.
+// All response state is request-local; the replier can be shared if its custom
+// prototypes and observer follow their documented concurrency contracts.
 //
 // NOTE - Several assumptions have been made to simplify the process
 // of response generation. The assumptions include:
@@ -143,24 +172,38 @@ func NewReplier(manifests []ErrorManifest, options ...Option) *Replier {
 // - The default response will be to return 200 status code if the NewResponseRequest is
 // solely  passed  with a writer
 func (r *Replier) NewHTTPResponse(response *NewResponseRequest) error {
-
-	if response.Writer == nil {
+	if response == nil {
+		return errors.New("reply/http-response: no response request provided")
+	}
+	if isNilValue(response.Writer) {
 		return errors.New("reply/http-response: failed to send response, no writer provided")
 	}
+	if r == nil || isNilValue(r.transferObject) || isNilValue(r.transferObjectError) {
+		return errors.New("reply/http-response: invalid response prototype")
+	}
+	// Keep the reusable manifest and prototypes immutable. All writer and body
+	// state belongs to this request, including for concurrent calls.
+	local := *r
+	local.transferObject = r.transferObject.RefreshTransferObject()
+	if isNilValue(local.transferObject) || samePrototype(local.transferObject, r.transferObject) {
+		return errors.New("reply/http-response: response prototype must return independent non-nil state")
+	}
+	return local.writeHTTPResponse(response)
+}
 
-	// Use fresh transfer object
-	r.transferObject = r.transferObject.RefreshTransferObject()
+// writeHTTPResponse applies existing precedence to request-local response state.
+func (r *Replier) writeHTTPResponse(response *NewResponseRequest) error {
 
 	r.setUniversalAttributes(response.Writer, response.Headers, response.Meta, response.StatusCode)
 
 	// Manage response for multi errors
 	if len(response.Errors) > 0 {
-		return r.generateMultiErrorResponse(response.Errors)
+		return r.generateMultiErrorResponse(response.Context, response.Errors)
 	}
 
 	// Manage response for error
 	if response.Error != nil {
-		return r.generateErrorResponse(response.Error)
+		return r.generateMultiErrorResponse(response.Context, []error{response.Error})
 	}
 
 	// Manage response for token
@@ -198,77 +241,46 @@ func (r *Replier) generateTokenResponse(tokenOne, tokenTwo string) error {
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
 }
 
-// generateMultiErrorResponse generates error response for multiple
-// errors
-//
-// NOTE - If at anytime one of the errors return a 5XX error manifest item,
-// only the 5XX error will be returned
-func (r *Replier) generateMultiErrorResponse(errs []error) error {
-
-	transferObjectErrors := []TransferObjectError{}
-
-	for _, err := range errs {
-		manifestItem := r.getErrorManifestItem(err)
-
-		if is5xx(manifestItem.StatusCode) {
-			return r.sendHTTPErrorsResponse(manifestItem.StatusCode, append(
-				[]TransferObjectError{},
-				r.convertErrorManifestItemToTransferObjectError(manifestItem)))
+// generateMultiErrorResponse resolves every independent failure before emitting
+// manifest-driven errors. A missing classification invalidates the collection;
+// diagnostics are never passed to a logger or to the transfer object.
+func (r *Replier) generateMultiErrorResponse(ctx context.Context, errs []error) error {
+	keys, known := r.ResolveErrors(errs...)
+	if !known {
+		if r.unmappedErrorObserver != nil {
+			if ctx == nil {
+				ctx = context.Background()
+			}
+			r.unmappedErrorObserver(ctx)
 		}
-
-		transferObjectErrors = append(transferObjectErrors, r.convertErrorManifestItemToTransferObjectError(manifestItem))
+		return r.sendManifestErrors([]ErrorManifestItem{getInternalServertErrorManifestItem()})
 	}
-
-	statusCode := getAppropiateStatusCodeOrDefault(transferObjectErrors)
-
-	return r.sendHTTPErrorsResponse(statusCode, transferObjectErrors)
-}
-
-// generateErrorResponse generates correct error response based on passed
-// error
-func (r *Replier) generateErrorResponse(err error) error {
-
-	var passedErrsFoundInProvidedManifest []error
-	var manifestAsErrList = r.getManifestErrList()
-	var passedErrAsSlice = strings.Split(err.Error(), "\n")
-
-	if len(passedErrAsSlice) == 1 {
-		return r.handleSingleErrorResponseGeneration(err)
-	}
-
-	for _, manifestErr := range manifestAsErrList {
-		if errors.Is(err, manifestErr) {
-			passedErrsFoundInProvidedManifest = append(passedErrsFoundInProvidedManifest, manifestErr)
-			continue
+	items := make([]ErrorManifestItem, 0, len(keys))
+	for _, key := range keys {
+		item := r.errorManifest[key]
+		setDefaultStatusCode(&item)
+		if is5xx(item.StatusCode) {
+			return r.sendManifestErrors([]ErrorManifestItem{item})
 		}
+		items = append(items, item)
 	}
-
-	if len(passedErrsFoundInProvidedManifest) == 0 {
-		return r.handleSingleErrorResponseGeneration(err)
-	}
-
-	return r.generateMultiErrorResponse(passedErrsFoundInProvidedManifest)
+	return r.sendManifestErrors(items)
 }
 
-// handleSingleErrorResponseGeneration handles sending response for a single
-// error
-func (r *Replier) handleSingleErrorResponseGeneration(err error) error {
-	manifestItem := r.getErrorManifestItem(err)
-
-	transferObjectErrors := append([]TransferObjectError{}, r.convertErrorManifestItemToTransferObjectError(manifestItem))
-
-	return r.sendHTTPErrorsResponse(manifestItem.StatusCode, transferObjectErrors)
-}
-
-// getManifestErrList returns the list of errors from the error manifest
-func (r *Replier) getManifestErrList() []error {
-	var errorList []error
-
-	for err := range r.errorManifest {
-		errorList = append(errorList, err)
+// sendManifestErrors encodes approved items using per-error prototype instances.
+// All factories complete before status/body writes, so an invalid factory does
+// not commit a partial response. The first item's status retains precedence.
+func (r *Replier) sendManifestErrors(items []ErrorManifestItem) error {
+	converted := make([]TransferObjectError, 0, len(items))
+	for _, item := range items {
+		value, err := r.convertErrorManifestItemToTransferObjectError(item)
+		if err != nil {
+			return err
+		}
+		converted = append(converted, value)
 	}
-
-	return errorList
+	// The manifest, not a custom serializer's status getter, owns HTTP status.
+	return r.sendHTTPErrorsResponse(items[0].StatusCode, converted)
 }
 
 // sendHTTPErrorsResponse handles setting status code and transfer object errors before
@@ -278,21 +290,6 @@ func (r *Replier) sendHTTPErrorsResponse(statusCode int, transferObjectErrors []
 	r.transferObject.SetErrors(transferObjectErrors)
 
 	return sendHTTPResponse(r.transferObject.GetWriter(), r.transferObject)
-}
-
-// getErrorManifestItem returns the corresponding manifest Item if found,
-// otherwise the internal server error is returned
-func (r *Replier) getErrorManifestItem(err error) ErrorManifestItem {
-
-	manifestItem, ok := r.errorManifest[err]
-	if !ok {
-		manifestItem = getInternalServertErrorManifestItem()
-		log.Printf("reply/error-response: failed to find error manifest item for %v", err)
-	}
-
-	setDefaultStatusCode(&manifestItem)
-
-	return manifestItem
 }
 
 // setDefaultStatusCode sets the error manifest item's status code to default error
@@ -343,10 +340,13 @@ func (r *Replier) setHeaders(h map[string]string) {
 
 // convertErrorManifestItemToTransferObjectError converts manifest error item to valid
 // transfer object error
-func (r *Replier) convertErrorManifestItemToTransferObjectError(errorItem ErrorManifestItem) TransferObjectError {
+func (r *Replier) convertErrorManifestItemToTransferObjectError(errorItem ErrorManifestItem) (TransferObjectError, error) {
 
 	// Use fresh transfer object error
 	convertedError := r.transferObjectError.RefreshTransferObject()
+	if isNilValue(convertedError) || samePrototype(convertedError, r.transferObjectError) {
+		return nil, errors.New("reply/http-response: error prototype must return independent non-nil state")
+	}
 
 	convertedError.SetTitle(errorItem.Title)
 	convertedError.SetDetail(errorItem.Detail)
@@ -355,27 +355,7 @@ func (r *Replier) convertErrorManifestItemToTransferObjectError(errorItem ErrorM
 	convertedError.SetStatusCode(errorItem.StatusCode)
 	convertedError.SetMeta(errorItem.Meta)
 
-	return convertedError
-}
-
-// getAppropiateStatusCodeOrDefault loops through collection of transfer object errors (first to last), and
-// attempts to pull and convert status code (string).
-//
-// NOTE - If error occurs the next element will be attempted. In the event no elements are left, the default
-// error status code (400) will be returned
-func getAppropiateStatusCodeOrDefault(transferObjectErrors []TransferObjectError) int {
-
-	for _, transferObjectError := range transferObjectErrors {
-
-		statusCode, err := strconv.Atoi(transferObjectError.GetStatusCode())
-		if err != nil {
-			continue
-		}
-
-		return statusCode
-	}
-
-	return defaultErrorsStatusCode
+	return convertedError, nil
 }
 
 // is5xx returns whether status code is a 5xx
@@ -393,7 +373,7 @@ func sendHTTPResponse(writer http.ResponseWriter, transferObject TransferObject)
 	writer.WriteHeader(transferObject.GetStatusCode())
 	err := json.NewEncoder(writer).Encode(transferObject)
 	if err != nil {
-		return fmt.Errorf("reply/http-response: failed to encode transfer object with %v", err)
+		return fmt.Errorf("reply/http-response: failed to encode transfer object with %w", err)
 	}
 
 	return nil
@@ -435,6 +415,12 @@ func getInternalServertErrorManifestItem() ErrorManifestItem {
 // response aides
 type ResponseAttributes func(*NewResponseRequest)
 
+// WithContext supplies request context for an unmapped-error observer. Context
+// values are not serialized or logged by reply and do not establish authority.
+func WithContext(ctx context.Context) ResponseAttributes {
+	return func(r *NewResponseRequest) { r.Context = ctx }
+}
+
 // WithHeaders adds passed headers on to the generated response
 func WithHeaders(headers map[string]string) ResponseAttributes {
 	return func(r *NewResponseRequest) {
@@ -468,7 +454,9 @@ func (r *Replier) NewHTTPMultiErrorResponse(w http.ResponseWriter, errs []error,
 
 	// Add attributes to response request
 	for _, attribute := range attributes {
-		attribute(&request)
+		if attribute != nil {
+			attribute(&request)
+		}
 	}
 
 	return r.NewHTTPResponse(&request)
@@ -492,7 +480,9 @@ func (r *Replier) NewHTTPErrorResponse(w http.ResponseWriter, err error, attribu
 
 	// Add attributes to response request
 	for _, attribute := range attributes {
-		attribute(&request)
+		if attribute != nil {
+			attribute(&request)
+		}
 	}
 
 	return r.NewHTTPResponse(&request)
@@ -515,7 +505,9 @@ func (r *Replier) NewHTTPDataResponse(w http.ResponseWriter, statusCode int, dat
 
 	// Add attributes to response request
 	for _, attribute := range attributes {
-		attribute(&request)
+		if attribute != nil {
+			attribute(&request)
+		}
 	}
 
 	return r.NewHTTPResponse(&request)
@@ -536,7 +528,9 @@ func (r *Replier) NewHTTPBlankResponse(w http.ResponseWriter, statusCode int, at
 
 	// Add attributes to response request
 	for _, attribute := range attributes {
-		attribute(&request)
+		if attribute != nil {
+			attribute(&request)
+		}
 	}
 
 	return r.NewHTTPResponse(&request)
@@ -567,7 +561,9 @@ func (r *Replier) NewHTTPTokenResponse(w http.ResponseWriter, statusCode int, to
 
 	// Add attributes to response request
 	for _, attribute := range attributes {
-		attribute(&request)
+		if attribute != nil {
+			attribute(&request)
+		}
 	}
 
 	return r.NewHTTPResponse(&request)

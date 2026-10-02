@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Update the YAML dependency used by the assertion test helpers to `v3.0.1`,
+  addressing CVE-2022-28948. Reply's production package does not import YAML.
 - Correctly mapped wrapped errors no longer miss their manifest entry.
 - Response state is request-local, allowing shared repliers with independent,
   concurrency-safe default or custom transfer objects.

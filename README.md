@@ -41,8 +41,12 @@
 ## Installation
 
 ```sh
-  go get github.com/ooaklee/reply
+  go get github.com/ooaklee/reply/v2
 ```
+
+## Development
+
+Install the Go version pinned in `.tool-versions` with `asdf install`, then run `go test ./...` and `go mod verify`. Review dependency updates and vulnerability reports before changing the module and its checksums.
 
 ## Getting Started
 

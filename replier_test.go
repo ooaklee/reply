@@ -5,6 +5,7 @@
 package reply_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -558,6 +559,42 @@ func TestReplier_NewHTTPResponse(t *testing.T) {
 	}
 }
 
+// Joined errors are discovered through a manifest map, so their response order
+// is unspecified. Compare the complete error objects and all other JSON fields.
+func assertUnorderedErrorResponse(t *testing.T, expected, actual string, envelopePath ...string) {
+	t.Helper()
+
+	var expectedResponse, actualResponse map[string]interface{}
+	if !assert.NoError(t, json.Unmarshal([]byte(expected), &expectedResponse)) ||
+		!assert.NoError(t, json.Unmarshal([]byte(actual), &actualResponse)) {
+		return
+	}
+
+	expectedEnvelope, actualEnvelope := expectedResponse, actualResponse
+	for _, key := range envelopePath {
+		var ok bool
+		expectedEnvelope, ok = expectedEnvelope[key].(map[string]interface{})
+		if !assert.True(t, ok, "expected response must contain object %q", key) {
+			return
+		}
+		actualEnvelope, ok = actualEnvelope[key].(map[string]interface{})
+		if !assert.True(t, ok, "actual response must contain object %q", key) {
+			return
+		}
+	}
+
+	expectedErrors, expectedOK := expectedEnvelope["errors"].([]interface{})
+	actualErrors, actualOK := actualEnvelope["errors"].([]interface{})
+	if !assert.True(t, expectedOK, "expected response must contain an errors array") ||
+		!assert.True(t, actualOK, "actual response must contain an errors array") {
+		return
+	}
+	assert.ElementsMatch(t, expectedErrors, actualErrors)
+	delete(expectedEnvelope, "errors")
+	delete(actualEnvelope, "errors")
+	assert.Equal(t, expectedResponse, actualResponse)
+}
+
 func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 
 	tests := []struct {
@@ -607,7 +644,7 @@ func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrors()), returnedBody)
+				assertUnorderedErrorResponse(t, getMultiErrorResponseMultiErrors(), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -706,7 +743,7 @@ func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsUsingCustomTOE()), returnedBody)
+				assertUnorderedErrorResponse(t, getMultiErrorResponseMultiErrorsUsingCustomTOE(), returnedBody)
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
@@ -811,7 +848,7 @@ func TestReplier_NewHTTPErrorResponseAide(t *testing.T) {
 
 				returnedBody := w.Body.String()
 
-				assert.Equal(t, stringWithNewLine(getMultiErrorResponseMultiErrorsUsingCustomTOEAndTO()), returnedBody)
+				assertUnorderedErrorResponse(t, getMultiErrorResponseMultiErrorsUsingCustomTOEAndTO(), returnedBody, "bar")
 
 				assert.Equal(t, getDefaultHeader(), w.Header())
 			},
